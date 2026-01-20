@@ -25,36 +25,36 @@ All commands must be executed from the project root directory.
 
 ### Install
 ```bash
-./simulator install
+./nf-server install
 ```
 
 ### Build
 ```bash
-./simulator build
+./nf-server build
 ```
 
 ### Clean
 ```bash
-./simulator clean
+./nf-server clean
 ```
 
 ### Start (systemd)
 ```bash
-./simulator start
+./nf-server start
 ```
-- Installs the binary to /usr/bin/nf-simulator
+- Installs the binary to /usr/bin/nf-server
 - Registers and starts the systemd service
-- Service name : nf-simulator
+- Service name : nf-server
 
 ### Stop
 ```bash
-./simulator stop
+./nf-server stop
 ```
 - Stops the running systemd service
 
 ### Uninstall
 ```bash
-./simulator uninstall
+./nf-server uninstall
 ```
 - Uninstall only static libraries
 
@@ -107,19 +107,19 @@ All commands must be executed from the project root directory.
 ## 4. Utilities / Operations
 ### Process Monitoring
 ```bash
-ps aux | grep nf-simulator
+ps aux | grep nf-server
 ```
 ```bash
 top -H -p <pid>
 ```
 ### Systemd Management
 ```bash
-systemctl status nf-simulator
+systemctl status nf-server
 ```
 
 ### File-based Logs
 ```bash
-tail -f /var/log/nf/nf-simulator.log
+tail -f /var/log/nf/nf-server.log
 ```
 
 ## 5. Licnese
