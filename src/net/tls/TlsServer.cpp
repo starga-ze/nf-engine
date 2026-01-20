@@ -332,32 +332,32 @@ size_t TlsServer::flushPendingForFd(int fd, size_t budget) {
         }
 
         const auto& payload = pkt->getPayload();
-        size_t offset = pkt->getTxOffset();
 
-        int ret = SSL_write(
-            ssl,
-            payload.data() + offset,
-            (int)(payload.size() - offset));
+        while (pkt->getTxOffset() < payload.size()){
+            const uint8_t* p = payload.data() + pkt->getTxOffset();
+            size_t bytes = payload.size() - pkt->getTxOffset();
 
-        if (ret > 0) {
-            pkt->updateTxOffset((size_t)ret);
-            used++;
-            continue;
-        }
+            int ret = SSL_write(ssl, p, (int) bytes);
+            if (ret > 0){
+                pkt->updateTxOffset(size_t(ret));
+                continue;
+            }
 
-        int err = SSL_get_error(ssl, ret);
-        if (err == SSL_ERROR_WANT_WRITE ||
-            err == SSL_ERROR_WANT_READ) {
-            std::lock_guard<std::mutex> lock(m_txLock);
-            m_txQueue[fd].push_front(std::move(pkt));
-            setInterest(fd, true);
+            int err = SSL_get_error(ssl, ret);
+            if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
+                {
+                    std::lock_guard<std::mutex> lock(m_txLock);
+                    m_txQueue[fd].push_front(std::move(pkt));
+                }
+                setInterest(fd, true);
+                return used + 1;
+            }
+
+            handleClose(fd);
             return used + 1;
         }
-
-        handleClose(fd);
-        return used + 1;
+        used++;
     }
-
     setInterest(fd, hasPendingTx(fd));
     return used;
 }
