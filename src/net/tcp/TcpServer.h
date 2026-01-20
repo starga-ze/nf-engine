@@ -91,9 +91,8 @@ private:
     std::atomic<bool> m_running{false};
     int m_workerCount;
 
-    std::vector <uint8_t> m_buffer;
-
     std::unordered_map<int, sockaddr_in> m_clients;
+    std::unordered_map<int, std::vector<uint8_t>> m_rxBuffer;
 
     std::mutex m_rxLock;
     std::condition_variable m_cv;

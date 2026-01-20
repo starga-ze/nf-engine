@@ -3,6 +3,7 @@
 #include "ingress/RxRouter.h"
 #include "util/ThreadManager.h"
 #include "net/packet/Packet.h"
+#include "net/packet/ParsedPacketTypes.h"
 #include "net/tls/TlsServer.h"
 
 #include <unistd.h>
@@ -12,21 +13,26 @@
 #include <sys/eventfd.h>
 #include <arpa/inet.h>
 
-#ifndef TCP_MAX_EVENTS
-#define TCP_MAX_EVENTS 64
-#endif
+#include <cstring>
+#include <algorithm>
 
-#ifndef TCP_RECV_BUFFER_SIZE
-#define TCP_RECV_BUFFER_SIZE 8192
-#endif
+#define TCP_HEADER_SIZE        (sizeof(CommonPacketHeader)) // 8 Byte
+#define TCP_MAX_BODY_LEN       (64 * 1024) // 64 KB
+#define TCP_RECV_CHUNK_SIZE    (4096)
+#define TCP_MAX_RX_BUFFER_SIZE (TCP_HEADER_SIZE + TCP_MAX_BODY_LEN)
+#define TCP_MAX_EVENTS         (64)
 
-TcpServer::TcpServer(int port, RxRouter *rxRouter, int workerCount, ThreadManager *threadManager,
-                     std::shared_ptr <TlsServer> tlsServer)
-        : m_port(port),
-          m_rxRouter(rxRouter),
-          m_workerCount(workerCount),
-          m_threadManager(threadManager),
-          m_tlsServer(std::move(tlsServer)) {
+
+TcpServer::TcpServer(int port,
+                     RxRouter* rxRouter,
+                     int workerCount,
+                     ThreadManager* threadManager,
+                     std::shared_ptr<TlsServer> tlsServer)
+    : m_port(port),
+      m_rxRouter(rxRouter),
+      m_workerCount(workerCount),
+      m_threadManager(threadManager),
+      m_tlsServer(std::move(tlsServer)) {
     init();
 }
 
@@ -41,14 +47,13 @@ bool TcpServer::init() {
 
     int opt = 1;
     setsockopt(m_sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
     setNonBlocking(m_sockFd);
 
     m_serverAddr.sin_family = AF_INET;
     m_serverAddr.sin_addr.s_addr = INADDR_ANY;
     m_serverAddr.sin_port = htons(m_port);
 
-    if (bind(m_sockFd, (sockaddr * ) & m_serverAddr, sizeof(m_serverAddr)) != 0)
+    if (bind(m_sockFd, (sockaddr*)&m_serverAddr, sizeof(m_serverAddr)) != 0)
         return false;
 
     if (listen(m_sockFd, SOMAXCONN) != 0)
@@ -64,14 +69,15 @@ bool TcpServer::init() {
 
     addToEpoll(m_sockFd, EPOLLIN);
     addToEpoll(m_txEventFd, EPOLLIN);
-
     return true;
 }
 
 void TcpServer::deinit() {
-    for (auto &kv: m_clients)
+    for (auto& kv : m_clients)
         close(kv.first);
+
     m_clients.clear();
+    m_rxBuffer.clear();
 
     if (m_sockFd >= 0) close(m_sockFd);
     if (m_epFd >= 0) close(m_epFd);
@@ -83,7 +89,6 @@ void TcpServer::start() {
     startWorkers();
 
     epoll_event events[TCP_MAX_EVENTS];
-    m_buffer.resize(TCP_RECV_BUFFER_SIZE);
 
     while (m_running) {
         int n = epoll_wait(m_epFd, events, TCP_MAX_EVENTS, -1);
@@ -108,9 +113,9 @@ void TcpServer::stopReact() {
 void TcpServer::startWorkers() {
     for (int i = 0; i < m_workerCount; ++i) {
         m_threadManager->addThread(
-                "tcp_worker_" + std::to_string(i),
-                std::bind(&TcpServer::processPacket, this),
-                std::bind(&TcpServer::stopWorker, this));
+            "tcp_worker_" + std::to_string(i),
+            std::bind(&TcpServer::processPacket, this),
+            std::bind(&TcpServer::stopWorker, this));
     }
 }
 
@@ -120,9 +125,9 @@ void TcpServer::stopWorker() {
 
 void TcpServer::processPacket() {
     while (true) {
-        std::unique_ptr <Packet> pkt;
+        std::unique_ptr<Packet> pkt;
         {
-            std::unique_lock <std::mutex> lock(m_rxLock);
+            std::unique_lock<std::mutex> lock(m_rxLock);
             while (m_rxQueue.empty() && m_running)
                 m_cv.wait(lock);
 
@@ -136,7 +141,7 @@ void TcpServer::processPacket() {
     }
 }
 
-void TcpServer::handleEvent(const epoll_event &ev) {
+void TcpServer::handleEvent(const epoll_event& ev) {
     int fd = ev.data.fd;
 
     if (fd == m_txEventFd) {
@@ -166,8 +171,8 @@ void TcpServer::acceptConnection() {
     while (true) {
         sockaddr_in clientAddr{};
         socklen_t len = sizeof(clientAddr);
-        int fd = accept(m_sockFd, (sockaddr * ) & clientAddr, &len);
 
+        int fd = accept(m_sockFd, (sockaddr*)&clientAddr, &len);
         if (fd < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 break;
@@ -176,7 +181,9 @@ void TcpServer::acceptConnection() {
 
         setNonBlocking(fd);
         addToEpoll(fd, EPOLLIN | EPOLLRDHUP);
+
         m_clients.emplace(fd, clientAddr);
+        m_rxBuffer.emplace(fd, std::vector<uint8_t>{});
     }
 }
 
@@ -184,40 +191,81 @@ void TcpServer::receivePacket(int fd) {
     if (isTlsClientHello(fd) && handoverToTls(fd))
         return;
 
+    auto it = m_clients.find(fd);
+    if (it == m_clients.end())
+        return;
+
+    auto& rxBuffer = m_rxBuffer[fd];
+
     while (true) {
-        ssize_t n = recv(fd, m_buffer.data(), m_buffer.size(), 0);
+        size_t oldSize = rxBuffer.size();
+        rxBuffer.resize(oldSize + TCP_RECV_CHUNK_SIZE);
+
+        ssize_t n = recv(fd, rxBuffer.data() + oldSize, TCP_RECV_CHUNK_SIZE, 0);
         if (n > 0) {
-            auto it = m_clients.find(fd);
-            if (it == m_clients.end())
+            rxBuffer.resize(oldSize + (size_t)n);
+
+            if (rxBuffer.size() > TCP_MAX_RX_BUFFER_SIZE) {
+                LOG_WARN("TCP Rx Buffer overflow fd={}", fd);
+                closeConnection(fd);
                 return;
-
-            std::vector <uint8_t> payload(m_buffer.begin(), m_buffer.begin() + n);
-            auto pkt = std::make_unique<Packet>(
-                    fd, Protocol::TCP, std::move(payload), it->second, m_serverAddr);
-
-            {
-                std::lock_guard <std::mutex> lock(m_rxLock);
-                m_rxQueue.push(std::move(pkt));
             }
-            m_cv.notify_one();
-        } else if (n == 0) {
-            closeConnection(fd);
-            return;
+
+            while (true) {
+                if (rxBuffer.size() < TCP_HEADER_SIZE)
+                    break;
+
+                CommonPacketHeader hdr{};
+                std::memcpy(&hdr, rxBuffer.data(), TCP_HEADER_SIZE);
+
+                uint16_t bodyLen = ntohs(hdr.bodyLen);
+                if (bodyLen > TCP_MAX_BODY_LEN) {
+                    LOG_WARN("TCP framing: bodyLen too large ({}) fd={}", bodyLen, fd);
+                    closeConnection(fd);
+                    return;
+                }
+
+                size_t frameLen = TCP_HEADER_SIZE + bodyLen;
+                if (rxBuffer.size() < frameLen)
+                    break;
+
+                std::vector<uint8_t> payload(
+                    rxBuffer.begin(), rxBuffer.begin() + frameLen);
+
+                /* Need to be optimize */
+                rxBuffer.erase(rxBuffer.begin(), rxBuffer.begin() + frameLen);
+
+                auto pkt = std::make_unique<Packet>(
+                        fd, Protocol::TCP, std::move(payload), it->second, m_serverAddr);
+
+                {
+                    std::lock_guard<std::mutex> lock(m_rxLock);
+                    m_rxQueue.push(std::move(pkt));
+                }
+                m_cv.notify_one();
+            }
         } else {
+            rxBuffer.resize(oldSize);
+
+            if (n == 0) {
+                closeConnection(fd);
+                return;
+            }
             if (errno == EAGAIN || errno == EWOULDBLOCK)
                 return;
+
             closeConnection(fd);
             return;
         }
     }
 }
 
-void TcpServer::enqueueTx(std::unique_ptr <Packet> packet) {
+void TcpServer::enqueueTx(std::unique_ptr<Packet> packet) {
     if (!packet) return;
 
     int fd = packet->getFd();
     {
-        std::lock_guard <std::mutex> lock(m_txLock);
+        std::lock_guard<std::mutex> lock(m_txLock);
         m_txQueue[fd].push_back(std::move(packet));
     }
 
@@ -228,14 +276,14 @@ void TcpServer::enqueueTx(std::unique_ptr <Packet> packet) {
 void TcpServer::flushAllPending(size_t budget) {
     std::vector<int> fds;
     {
-        std::lock_guard <std::mutex> lock(m_txLock);
-        for (auto &kv: m_txQueue)
+        std::lock_guard<std::mutex> lock(m_txLock);
+        for (auto& kv : m_txQueue)
             if (!kv.second.empty())
                 fds.push_back(kv.first);
     }
 
     size_t used = 0;
-    for (int fd: fds) {
+    for (int fd : fds) {
         if (used >= budget) break;
         used += flushPendingForFd(fd, budget - used);
     }
@@ -245,9 +293,9 @@ size_t TcpServer::flushPendingForFd(int fd, size_t budget) {
     size_t used = 0;
 
     while (used < budget) {
-        std::unique_ptr <Packet> pkt;
+        std::unique_ptr<Packet> pkt;
         {
-            std::lock_guard <std::mutex> lock(m_txLock);
+            std::lock_guard<std::mutex> lock(m_txLock);
             auto it = m_txQueue.find(fd);
             if (it == m_txQueue.end() || it->second.empty()) {
                 setInterest(fd, false);
@@ -257,10 +305,10 @@ size_t TcpServer::flushPendingForFd(int fd, size_t budget) {
             it->second.pop_front();
         }
 
-        const auto &payload = pkt->getPayload();
+        const auto& payload = pkt->getPayload();
         size_t offset = pkt->getTxOffset();
 
-        const uint8_t *p = payload.data() + offset;
+        const uint8_t* p = payload.data() + offset;
         size_t bytes = payload.size() - offset;
 
         while (bytes > 0) {
@@ -273,7 +321,7 @@ size_t TcpServer::flushPendingForFd(int fd, size_t budget) {
             }
 
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                std::lock_guard <std::mutex> lock(m_txLock);
+                std::lock_guard<std::mutex> lock(m_txLock);
                 m_txQueue[fd].push_front(std::move(pkt));
                 setInterest(fd, true);
                 return used + 1;
@@ -291,7 +339,7 @@ size_t TcpServer::flushPendingForFd(int fd, size_t budget) {
 }
 
 bool TcpServer::hasPendingTx(int fd) {
-    std::lock_guard <std::mutex> lock(m_txLock);
+    std::lock_guard<std::mutex> lock(m_txLock);
     auto it = m_txQueue.find(fd);
     return it != m_txQueue.end() && !it->second.empty();
 }
@@ -299,9 +347,11 @@ bool TcpServer::hasPendingTx(int fd) {
 void TcpServer::closeConnection(int fd) {
     epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr);
     close(fd);
-    m_clients.erase(fd);
 
-    std::lock_guard <std::mutex> lock(m_txLock);
+    m_clients.erase(fd);
+    m_rxBuffer.erase(fd);
+
+    std::lock_guard<std::mutex> lock(m_txLock);
     m_txQueue.erase(fd);
 }
 
@@ -321,6 +371,7 @@ bool TcpServer::handoverToTls(int fd) {
 
     sockaddr_in clientAddr = it->second;
     m_clients.erase(it);
+    m_rxBuffer.erase(fd);
 
     if (m_tlsServer) {
         m_tlsServer->handleTlsConnection(fd, {m_serverAddr, clientAddr});
