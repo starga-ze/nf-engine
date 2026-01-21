@@ -306,17 +306,14 @@ size_t TcpServer::flushPendingForFd(int fd, size_t budget) {
         }
 
         const auto& payload = pkt->getPayload();
-        size_t offset = pkt->getTxOffset();
 
-        const uint8_t* p = payload.data() + offset;
-        size_t bytes = payload.size() - offset;
+        while (pkt->getTxOffset() < payload.size()) {
+            const uint8_t* p = payload.data() + pkt->getTxOffset();
+            size_t bytes = payload.size() - pkt->getTxOffset();
 
-        while (bytes > 0) {
             ssize_t ret = send(fd, p, bytes, MSG_NOSIGNAL);
             if (ret > 0) {
                 pkt->updateTxOffset(ret);
-                p += ret;
-                bytes -= ret;
                 continue;
             }
 
