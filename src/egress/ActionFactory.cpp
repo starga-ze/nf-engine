@@ -1,8 +1,7 @@
 #include "egress/ActionFactory.h"
 #include "util/Logger.h"
 
-#include "execution/login/LoginSuccessAction.h"
-#include "execution/login/LoginFailAction.h"
+#include "execution/login/LoginAction.h"
 
 std::unique_ptr <Action> ActionFactory::create(Opcode opcode, uint64_t sessionId) {
     /* TODO: implement serialize */

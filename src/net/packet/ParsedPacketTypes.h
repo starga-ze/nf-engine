@@ -54,8 +54,10 @@ enum class Opcode : uint8_t {
     LOGIN_RES_SUCCESS = 0x11,   // 17
     LOGIN_RES_FAIL = 0x12,
 
-    AUTH_REQ = 0x13,   // 18
-    AUTH_RES = 0x14,   // 19
+    LOGOUT_REQ = 0x15,
+    LOGOUT_RES_SUCCESS = 0x16,
+    LOGOUT_RES_FAIL = 0x17,
+
 
     MOVE = 0x20,   // 32
 

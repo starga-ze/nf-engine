@@ -2,8 +2,7 @@
 #include "util/Logger.h"
 #include "execution/shard/ShardManager.h"
 #include "egress/ActionFactory.h"
-#include "execution/login/LoginSuccessAction.h"
-#include "execution/login/LoginFailAction.h"
+#include "execution/login/LoginAction.h"
 
 #include <cstring>
 #include <string>
