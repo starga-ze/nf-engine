@@ -2,7 +2,6 @@
 
 #include "session/SessionManager.h"
 #include "net/packet/Packet.h"
-#include "net/packet/ActionPacket.h"
 #include "net/packet/PacketBuilder.h"
 
 #include <memory>
