@@ -1,12 +1,11 @@
 #include "PacketParser.h"
 #include "util/Logger.h"
 
+#include <openssl/rand.h>
 #include <cstring>
 #include <arpa/inet.h>
 #include <endian.h>
 
-static const uint64_t FNV_OFFSET_BASIS = 1469598103934665603ULL;
-static const uint64_t FNV_PRIME = 1099511628211ULL;
 /*
  * Note that /src/net/packet/ParsedPacketTypes.h
  *
@@ -79,20 +78,20 @@ std::optional <ParsedPacket> PacketParser::parse(std::unique_ptr <Packet> packet
             flags, sessionId, std::move(payload), HEADER_SIZE, bodyLen);
 }
 
-uint64_t PacketParser::fnv1aMix(uint64_t hash, uint64_t value) const {
-    hash ^= value;
-    hash *= FNV_PRIME;
-    return hash;
-}
+uint64_t PacketParser::resolvePreSessionId(const Packet &) const {
+    uint64_t id = 0;
 
-uint64_t PacketParser::resolvePreSessionId(const Packet &packet) const {
-    uint64_t hash = FNV_OFFSET_BASIS;
+    for (int i = 0; i < 3; ++i) {
+        if (RAND_bytes(reinterpret_cast<unsigned char*>(&id), sizeof(id)) != 1) {
+            LOG_ERROR("RAND_bytes failed (try={})", i);
+            continue;
+        }
 
-    hash = fnv1aMix(hash, static_cast<uint64_t>(packet.getProtocol()));
-    hash = fnv1aMix(hash, static_cast<uint64_t>(packet.getSrcIp()));
-    hash = fnv1aMix(hash, static_cast<uint64_t>(packet.getSrcPort()));
-    hash = fnv1aMix(hash, static_cast<uint64_t>(packet.getDstIp()));
-    hash = fnv1aMix(hash, static_cast<uint64_t>(packet.getDstPort()));
+        if (id != 0) {
+            return id;
+        }
+    }  
 
-    return hash;
+    LOG_ERROR("Failed to generate non-zero sessionId");
+    return 0;
 }
