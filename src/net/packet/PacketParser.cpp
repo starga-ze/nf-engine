@@ -1,7 +1,6 @@
 #include "PacketParser.h"
 #include "util/Logger.h"
 
-#include <openssl/rand.h>
 #include <cstring>
 #include <arpa/inet.h>
 #include <endian.h>
@@ -57,41 +56,7 @@ std::optional <ParsedPacket> PacketParser::parse(std::unique_ptr <Packet> packet
         return std::nullopt;
     }
 
-    if (opcode == Opcode::LOGIN_REQ) {
-        if (sessionId == 0) {
-            return ParsedPacket(packet->getFd(), packet->getConnInfo(), version, opcode,
-                    flags, resolvePreSessionId(*packet), std::move(payload), HEADER_SIZE, bodyLen);
-        }
-
-        else {
-            LOG_WARN("LOGIN_REQ with non-zero sessionId");
-            return std::nullopt;
-        }
-    } else {
-        if (sessionId == 0) {
-            LOG_WARN("Non-login REQ packet without sessionId");
-            return std::nullopt;
-        }
-    }
-
     return ParsedPacket(packet->getFd(), packet->getConnInfo(), version, opcode,
             flags, sessionId, std::move(payload), HEADER_SIZE, bodyLen);
 }
 
-uint64_t PacketParser::resolvePreSessionId(const Packet &) const {
-    uint64_t id = 0;
-
-    for (int i = 0; i < 3; ++i) {
-        if (RAND_bytes(reinterpret_cast<unsigned char*>(&id), sizeof(id)) != 1) {
-            LOG_ERROR("RAND_bytes failed (try={})", i);
-            continue;
-        }
-
-        if (id != 0) {
-            return id;
-        }
-    }  
-
-    LOG_ERROR("Failed to generate non-zero sessionId");
-    return 0;
-}
