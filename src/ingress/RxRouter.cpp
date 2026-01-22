@@ -25,9 +25,9 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
 
     ParsedPacket &parsed = *parsedPacket;
 
-    // LOG_TRACE("RX Dump\n{}", parsed.dump());
-
     const uint64_t sessionId = parsed.getSessionId();
+
+    LOG_TRACE("SessionId : {}", sessionId);
 
     Session *session = m_sessionManager->find(sessionId);
     if (not session) {

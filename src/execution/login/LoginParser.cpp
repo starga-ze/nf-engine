@@ -19,7 +19,7 @@ std::unique_ptr<Event> LoginParser::parseLoginReq(ParsedPacket& parsed)
 {
     auto payload = parsed.takePayload();
 
-    constexpr size_t HEADER_SIZE = 8;
+    constexpr size_t HEADER_SIZE = 16;
     const size_t bodyLen = parsed.bodySize();
 
     if (payload.size() < HEADER_SIZE || payload.size() < HEADER_SIZE + bodyLen) {

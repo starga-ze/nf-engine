@@ -84,6 +84,7 @@ struct CommonPacketHeader {
     PacketVersion version;
     Opcode opcode;
     uint16_t bodyLen;
+    uint64_t sessionId;
     uint32_t flags;      //reserved / future use
 };
 #pragma pack(pop)

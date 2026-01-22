@@ -44,8 +44,6 @@ public:
 
     uint64_t getSessionId() const;
 
-    std::vector <uint8_t> extractBody();
-
 private:
     int m_fd{0};
     ConnInfo m_connInfo;

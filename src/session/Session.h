@@ -11,8 +11,8 @@ struct SessionId {
 };
 
 enum class SessionState : uint8_t {
-    CONNECTED,
-    LOGGED_IN,
+    PRE_AUTH,
+    AUTH,
     IN_WORLD,
     CLOSED
 };
