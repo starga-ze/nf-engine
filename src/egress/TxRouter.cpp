@@ -12,8 +12,6 @@ TxRouter::TxRouter(TlsServer *tls, TcpServer *tcp, UdpServer *udp, SessionManage
           m_sessionManager(sessionManager) {
 }
 
-
-/* param: std::vector<uint8_t> */
 void TxRouter::handlePacket(uint64_t sessionId, Opcode opcode, std::vector<uint8_t> payload) {
 
     LOG_TRACE("sessid:{}, opcode:{}", sessionId, static_cast<uint8_t> (opcode));

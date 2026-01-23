@@ -17,7 +17,6 @@ RxRouter::~RxRouter() {
 void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
     LOG_TRACE("RxRouter Dump\n{}", packet->dump());
 
-    /* Parser intentionlly create session id */
     auto parsedPacket = m_packetParser.parse(std::move(packet));
     if (not parsedPacket) {
         return;
@@ -25,16 +24,15 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
 
     ParsedPacket &parsed = *parsedPacket;
 
-
     if (parsed.opcode() == Opcode::LOGIN_REQ and parsed.getSessionId() == 0) {
         if (not m_sessionManager->create(parsed)) {
-            LOG_WARN("Duplicate or invalid LOGIN_REQ fd={}", parsed.getFd());
+            LOG_WARN("Session create failed");
             return;
         }
     }
     else {
         if (not m_sessionManager->checkAndBind(parsed)){
-            LOG_ERROR("Session Find or Bind Error");
+            LOG_WARN("Session check and bind failed");
             return;
         }
     }
