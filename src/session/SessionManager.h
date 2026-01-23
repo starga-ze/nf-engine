@@ -27,6 +27,8 @@ public:
 
     bool checkAndBind(const ParsedPacket& parsed);
 
+    bool create(ParsedPacket& parsed);;
+
     void erase(uint64_t sessionId);
 
     void setState(uint64_t sessionId, SessionState state);
@@ -36,6 +38,8 @@ public:
 private:
     void dump();
     static const char* stateToStr(SessionState s);
+    uint64_t generateSecureSessionId();
+    
     std::atomic<bool> m_running {false};
 
     std::mutex m_lock;

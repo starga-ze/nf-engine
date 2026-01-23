@@ -25,11 +25,25 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
 
     ParsedPacket &parsed = *parsedPacket;
 
-    if (not m_sessionManager->checkAndBind(parsed)){
-        LOG_ERROR("Session Bind Error");
-        return;
+
+    if (parsed.opcode() == Opcode::LOGIN_REQ and parsed.getSessionId() == 0) {
+        if (not m_sessionManager->create(parsed)) {
+            LOG_WARN("Duplicate or invalid LOGIN_REQ fd={}", parsed.getFd());
+            return;
+        }
+    }
+    else {
+        if (not m_sessionManager->checkAndBind(parsed)){
+            LOG_ERROR("Session Find or Bind Error");
+            return;
+        }
     }
 
+    if (parsed.getSessionId() == 0)
+    {
+        LOG_WARN("Invalid SessionId");
+        return;
+    }
     uint64_t sessionId = parsed.getSessionId();
 
     size_t shardIdx = selectShard(sessionId);

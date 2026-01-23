@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <iomanip>
+#include <openssl/rand.h>
 
 SessionManager::SessionManager() = default;
 
@@ -23,7 +24,6 @@ void SessionManager::stop() {
 bool SessionManager::checkAndBind(const ParsedPacket& parsed)
 {
     const uint64_t sessionId = parsed.getSessionId();
-    const Opcode opcode = parsed.opcode();
 
     if (sessionId == 0) {
         LOG_WARN("Invalid sessionId=0");
@@ -35,20 +35,39 @@ bool SessionManager::checkAndBind(const ParsedPacket& parsed)
     auto it = m_sessions.find(sessionId);
 
     if (it == m_sessions.end()) {
-        if (opcode != Opcode::LOGIN_REQ) {
-            LOG_WARN("Session not found for non-login packet, sid={}", sessionId);
-            return false;
-        }
-
-        auto session = std::make_unique<Session>(sessionId);
-        session->bind(parsed);
-
-        m_sessions.emplace(sessionId, std::move(session));
-        LOG_DEBUG("Create pre-session sid={}", sessionId);
-        return true;
+        LOG_WARN("Session not found,  sid={}", sessionId);
+        return false;
     }
 
     it->second->bind(parsed);
+    return true;
+}
+
+bool SessionManager::create(ParsedPacket& parsed)
+{
+    const int fd = parsed.getFd();
+
+    std::lock_guard<std::mutex> lock(m_lock);
+
+    /*
+    if (m_fdToSession.count(fd) != 0) {
+        LOG_WARN("Duplicate LOGIN_REQ, fd={}", fd);
+        return false;
+    }
+    */
+
+    uint64_t sessionId = generateSecureSessionId();
+
+    auto session = std::make_unique<Session>(sessionId);
+    session->bind(parsed);
+    session->setState(SessionState::PRE_AUTH);
+
+    m_sessions.emplace(sessionId, std::move(session));
+    // m_fdToSession.emplace(fd, sid);
+
+    parsed.setSessionId(sessionId);
+
+    LOG_INFO("Create session sid={}, fd={}", sessionId, fd);
     return true;
 }
 
@@ -82,7 +101,7 @@ bool SessionManager::getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxS
 
     out.tcpFd    = s.getTcpFd();
     out.udpFd    = s.getUdpFd();
-    out.connInfo = s.getConnInfo(); // 구조체 복사
+    out.connInfo = s.getConnInfo();
 
     return true;
 }
@@ -98,6 +117,22 @@ void SessionManager::setState(uint64_t sessionId, SessionState state)
     }
 
     it->second->setState(state);
+}
+
+uint64_t SessionManager::generateSecureSessionId()
+{
+    uint64_t sid = 0;
+
+    if (RAND_bytes(reinterpret_cast<unsigned char*>(&sid), sizeof(sid)) != 1) {
+        LOG_FATAL("RAND_bytes failed");
+        std::abort();
+    }
+
+    if (sid == 0) {
+        return generateSecureSessionId();
+    }
+
+    return sid;
 }
 
 void SessionManager::dump()

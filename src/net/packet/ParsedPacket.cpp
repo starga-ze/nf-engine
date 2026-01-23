@@ -64,3 +64,8 @@ uint32_t ParsedPacket::flags() const {
 uint64_t ParsedPacket::getSessionId() const {
     return m_sessionId;
 }
+
+void ParsedPacket::setSessionId(uint64_t sessionId)
+{
+    m_sessionId = sessionId;
+}

@@ -44,6 +44,8 @@ public:
 
     uint64_t getSessionId() const;
 
+    void setSessionId(uint64_t sessionId);
+
 private:
     int m_fd{0};
     ConnInfo m_connInfo;
