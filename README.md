@@ -75,10 +75,11 @@ All commands must be executed from the project root directory.
 - Packet object abstraction
 - Separation of network I/O and logic execution
 - Explicit packet ownership transfer via queues
+- Serialize and Deserialize
 
 ### Concurrency Model
 - Tick-based logic execution
-- Shard-based event distribution
+- Shard-based event/action distribution
 - In-shard ordering guarantees
 
 ### Thread Model
@@ -127,3 +128,10 @@ This project is intended for research and experimental use.
 
 Third-party libraries included or referenced in this project are governed by
 their respective licenses provided by the original authors and repositories.
+
+## Note
+This project is a runtime prototype created for personal architectural study.
+
+Some features may be incomplete, experimental, or intentionally simplified.
+Correctness, performance, fault tolerance, and security guarantees required
+for commercial or production-grade services are not guaranteed.
