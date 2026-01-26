@@ -1,6 +1,6 @@
 #pragma once
 
-#include "net/tcp/TcpClient.h"
+#include "simulator/TcpClient.h"
 
 #include <openssl/ssl.h>
 #include <atomic>
@@ -11,7 +11,9 @@ public:
 
     ~TlsClient();
 
-    void start();
+    bool connect();
+    bool send(const void* data, size_t len);
+    ssize_t recv(void* buffer, size_t len);
 
     void stop();
 
@@ -30,5 +32,3 @@ private:
 
     std::atomic<bool> m_running;
 };
-
-

@@ -25,7 +25,7 @@ std::unique_ptr <Packet> PacketBuilder::build(std::vector<uint8_t> payload, cons
     case Protocol::TCP:
     case Protocol::TLS:
         return std::make_unique<Packet>(
-            snap.tcpFd,
+            snap.tlsFd,
             snap.protocol,
             std::move(payload),
             srcAddr,
@@ -37,7 +37,7 @@ std::unique_ptr <Packet> PacketBuilder::build(std::vector<uint8_t> payload, cons
             snap.udpFd,
             Protocol::UDP,
             std::move(payload),
-            srcAddr,   // ★ 논리 정보로 유지
+            srcAddr,
             dstAddr
         );
 

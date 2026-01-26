@@ -55,9 +55,12 @@ bool Core::initializeRuntime() {
 
     m_shardWorkerThread = 4;
 
+    m_clients = 3;
+    /*
     m_tcpClients = 0;
     m_udpClients = 0;
     m_tlsClients = 1;
+    */
 
     m_tcpServerWorkerThread = 3;
     m_udpServerWorkerThread = 3;
@@ -169,6 +172,14 @@ void Core::startThreads() {
                                std::bind(&SessionManager::start, m_sessionManager.get()),
                                std::bind(&SessionManager::stop, m_sessionManager.get()));
 
+    for (int i = 0; i < m_clients; ++i) {
+        auto &client = m_clientList[i];
+        m_threadManager->addThread("client_" + std::to_string(i + 1),
+                std::bind(&Client::start, client.get()),
+                std::bind(&Client::stop, client.get()));
+    }
+
+    /*
     for (int i = 0; i < m_udpClients; ++i) {
         auto &udpClient = m_udpClientList[i];
         m_threadManager->addThread("udp_client_" + std::to_string(i),
@@ -189,9 +200,17 @@ void Core::startThreads() {
                                    std::bind(&TlsClient::start, tlsClient.get()),
                                    std::bind(&TlsClient::stop, tlsClient.get()));
     }
+    */
 }
 
 void Core::initializeClients() {
+    m_clientList.clear();
+    m_clientList.reserve(m_clients);
+    for (int i = 0; i < m_clients; ++i) {
+        m_clientList.emplace_back(std::make_unique<Client>(i + 1, m_udpServerPort, m_tcpServerPort));
+    }
+
+    /*
     m_udpClientList.clear();
     m_udpClientList.reserve(m_udpClients);
     for (int i = 0; i < m_udpClients; ++i) {
@@ -209,6 +228,7 @@ void Core::initializeClients() {
     for (int i = 0; i < m_tlsClients; ++i) {
         m_tlsClientList.emplace_back(std::make_unique<TlsClient>(i + 1, m_tcpServerPort));
     }
+    */
 }
 
 void Core::waitForShutdown() {

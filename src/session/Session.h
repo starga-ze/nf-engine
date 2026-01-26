@@ -22,8 +22,11 @@ public:
 
         switch (m_connInfo.protocol) {
         case Protocol::TCP:
-        case Protocol::TLS:
             m_tcpFd = parsed.getFd();
+            break;
+
+        case Protocol::TLS:
+            m_tlsFd = parsed.getFd();
             break;
 
         case Protocol::UDP:
@@ -35,7 +38,7 @@ public:
         }
     }
 
-    // getters (TxRouter용 – 필요 시)
+    int getTlsFd() const { return m_tlsFd; }
     int getTcpFd() const { return m_tcpFd; }
     int getUdpFd() const { return m_udpFd; }
     const ConnInfo& getConnInfo() const { return m_connInfo; }
@@ -49,7 +52,8 @@ private:
     SessionState m_state{SessionState::UNKNOWN};
 
     // network
-    int m_tcpFd{-1};        // TCP / TLS 공용
+    int m_tlsFd{-1};        // TLS
+    int m_tcpFd{-1};        // TCP
     int m_udpFd{-1};        // UDP server fd
     ConnInfo m_connInfo{};  // src/dst ip/port (UDP peer 포함)
 };

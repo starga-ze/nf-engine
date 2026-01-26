@@ -57,7 +57,6 @@ bool UdpServer::init() {
     int opt = 1;
     setsockopt(m_sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // 수신 버퍼
     int rcv = UDP_MAX_RX_BUFFER_SIZE;
     setsockopt(m_sockFd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
 

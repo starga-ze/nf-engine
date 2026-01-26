@@ -7,17 +7,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
-
-static const uint8_t LOGIN_REQ_TEST_PACKET[28]
-        {
-                0x01, 0x10, 0x00, 0x0C, // ver + opcode + bodylen
-                0x00, 0x00, 0x00, 0x00, // sessionId
-                0x00, 0x00, 0x00, 0x00,
-                0x00, 0x00, 0x00, 0x00, // flags
-                0x00, 0x04, 0x74, 0x65, // body
-                0x73, 0x74, 0x00, 0x04,
-                0x74, 0x65, 0x73, 0x74
-        };
+#include <fcntl.h>
 
 TlsClient::TlsClient(int id, int port)
         : m_id(id),
@@ -71,10 +61,10 @@ bool TlsClient::initSsl(int fd) {
     return true;
 }
 
-void TlsClient::start() {
+bool TlsClient::connect() {
     if (!m_tcp.init()) {
         LOG_ERROR("TlsClient[{}]: TCP init/connect failed", m_id);
-        return;
+        return false;
     }
 
     int fd = m_tcp.getFd();
@@ -83,34 +73,45 @@ void TlsClient::start() {
     if (!initSsl(fd)) {
         LOG_ERROR("TlsClient[{}]: initSsl failed", m_id);
         stop();
-        return;
+        return false;
     }
-
-    m_running = true;
 
     int ret = SSL_connect(m_ssl);
     if (ret != 1) {
         logError("SSL_connect failed");
         stop();
-        return;
+        return false;
     }
 
     LOG_INFO("TlsClient[{}]: TLS Handshake complete!", m_id);
 
-    while (m_running) {
-        int wr = SSL_write(m_ssl, LOGIN_REQ_TEST_PACKET, sizeof(LOGIN_REQ_TEST_PACKET));
-        if (wr <= 0) {
-            int err = SSL_get_error(m_ssl, wr);
-            LOG_ERROR("TlsClient[{}]: SSL_write failed (err={})", m_id, err);
-            break;
-        }
- 
-        Random random;
-        double sleepDuration = random.getRandomReal(5.0, 10.0);
-        std::this_thread::sleep_for(std::chrono::duration<double>(sleepDuration));
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0){
+        return false;
     }
+    return (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0);
+}
 
-    stop();
+bool TlsClient::send(const void* data, size_t len)
+{
+    int n = SSL_write(m_ssl, data, len);
+    if (n <= 0) {
+        logError("SSL_write failed");
+        return false;
+    }
+    return true;
+}
+
+ssize_t TlsClient::recv(void* buffer, size_t len)
+{
+    int n = SSL_read(m_ssl, buffer, len);
+    if (n <= 0) {
+        int err = SSL_get_error(m_ssl, n);
+        if (err == SSL_ERROR_WANT_READ)
+            return 0;
+        return -1;
+    }
+    return n;
 }
 
 void TlsClient::stop() {
@@ -132,4 +133,5 @@ void TlsClient::stop() {
 
     m_tcp.stop();
 }
+
 

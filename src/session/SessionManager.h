@@ -11,6 +11,7 @@
 
 struct SessionTxSnapshot {
     Protocol protocol{Protocol::UNKNOWN};
+    int tlsFd{-1};
     int tcpFd{-1};
     int udpFd{-1};
     ConnInfo connInfo{};

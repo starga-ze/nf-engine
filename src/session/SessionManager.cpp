@@ -107,6 +107,7 @@ bool SessionManager::getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxS
             return false;
     }
 
+    out.tlsFd    = s.getTlsFd();
     out.tcpFd    = s.getTcpFd();
     out.udpFd    = s.getUdpFd();
     out.connInfo = s.getConnInfo();
@@ -157,11 +158,12 @@ void SessionManager::dump()
     oss << std::left
         << std::setw(SID_W)   << "SID"
         << std::setw(STATE_W) << "STATE"
+        << std::setw(FD_W)    << "TLS_FD"
         << std::setw(FD_W)    << "TCP_FD"
         << std::setw(FD_W)    << "UDP_FD"
         << "\n";
 
-    oss << std::string(SID_W + STATE_W + FD_W * 2, '=') << "\n";
+    oss << std::string(SID_W + STATE_W + FD_W * 3, '=') << "\n";
 
     if (m_sessions.empty()) {
         oss << "(no sessions)\n";
@@ -172,6 +174,7 @@ void SessionManager::dump()
             oss << std::left
                 << std::setw(SID_W)   << sid
                 << std::setw(STATE_W) << stateToStr(session->getState())
+                << std::setw(FD_W)    << session->getTlsFd()
                 << std::setw(FD_W)    << session->getTcpFd()
                 << std::setw(FD_W)    << session->getUdpFd()
                 << "\n";
