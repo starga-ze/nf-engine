@@ -33,8 +33,10 @@ private:
     void init();
 
     void loginPhase();
+    void lobbyPhase();
 
     std::vector<uint8_t> buildLoginReq();
+    std::vector<uint8_t> buildEnterLobbyReq();
 
     std::unique_ptr<TcpClient> m_tcpClient;
     std::unique_ptr<UdpClient> m_udpClient;

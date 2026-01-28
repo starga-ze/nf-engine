@@ -36,7 +36,14 @@ void Client::start()
         return;
     }
 
+    if (not m_tcpClient->connect())
+    {
+        LOG_FATAL("TCP connect failed");
+        return;
+    }
+
     loginPhase();
+    lobbyPhase();
 
     LOG_INFO("SessionId; {}", m_sessionId);
 
@@ -69,12 +76,21 @@ void Client::loginPhase()
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    //dumpHex(buf, n);
 
     uint64_t sessionId = 0;
     std::memcpy(&sessionId, buf + 4, sizeof(sessionId));
     m_sessionId = be64toh(sessionId);
     return;
+}
+
+void Client::lobbyPhase()
+{
+    auto pkt = buildEnterLobbyReq();
+
+    if (not m_tcpClient->send(pkt.data(), pkt.size())) {
+        LOG_FATAL("ENTER_LOBBY_REQ send failed");
+        return;
+    }
 }
 
 void Client::stop()
@@ -87,21 +103,56 @@ void Client::stop()
 
 std::vector<uint8_t> Client::buildLoginReq()
 {
-    static const uint8_t LOGIN_REQ_TEST_PACKET[28] =
-    {
-        0x01, 0x10, 0x00, 0x0C, // ver + opcode + bodylen
-        0x00, 0x00, 0x00, 0x00, // sessionId
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, // flags
-        0x00, 0x04, 0x74, 0x65, // body
-        0x73, 0x74, 0x00, 0x04,
-        0x74, 0x65, 0x73, 0x74
-    };
+    const char* id = "test";
+    const char* pw = "test";
 
-    return std::vector<uint8_t>(
-        LOGIN_REQ_TEST_PACKET,
-        LOGIN_REQ_TEST_PACKET + sizeof(LOGIN_REQ_TEST_PACKET)
-    );
+    uint16_t bodyLen =
+        2 + std::strlen(id) +
+        2 + std::strlen(pw);
+
+    std::vector<uint8_t> pkt(16 + bodyLen);
+
+    pkt[0] = 0x01;  
+    pkt[1] = 0x10;  
+    pkt[2] = bodyLen >> 8;
+    pkt[3] = bodyLen & 0xFF;
+
+    uint64_t sid = 0;
+    std::memcpy(pkt.data() + 4, &sid, sizeof(sid));
+
+    std::memset(pkt.data() + 12, 0, 4);
+
+    size_t off = 16;
+
+    uint16_t idLen = std::strlen(id);
+    pkt[off++] = idLen >> 8;
+    pkt[off++] = idLen & 0xFF;
+    std::memcpy(pkt.data() + off, id, idLen);
+    off += idLen;
+
+    uint16_t pwLen = std::strlen(pw);
+    pkt[off++] = pwLen >> 8;
+    pkt[off++] = pwLen & 0xFF;
+    std::memcpy(pkt.data() + off, pw, pwLen);
+
+    return pkt;
+}
+
+std::vector<uint8_t> Client::buildEnterLobbyReq()
+{
+    std::vector<uint8_t> pkt(16);
+
+    pkt[0] = 0x01;                    
+    pkt[1] = 0x20;  
+    pkt[2] = 0x00;                    
+    pkt[3] = 0x00;  
+
+    uint64_t sessionId = htobe64(m_sessionId);
+    std::memcpy(pkt.data() + 4, &sessionId, sizeof(sessionId));
+
+    std::memset(pkt.data() + 12, 0, 4);
+
+    return pkt;
 }
 
 void Client::dumpHex(const uint8_t* buf, size_t len)

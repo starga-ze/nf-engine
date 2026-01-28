@@ -29,6 +29,4 @@ private:
 
     SSL_CTX *m_ctx;
     SSL *m_ssl;
-
-    std::atomic<bool> m_running;
 };

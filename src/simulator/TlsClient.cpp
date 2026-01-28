@@ -14,8 +14,9 @@ TlsClient::TlsClient(int id, int port)
           m_port(port),
           m_tcp(id, port),
           m_ctx(nullptr),
-          m_ssl(nullptr),
-          m_running(false) {
+          m_ssl(nullptr)
+{
+
 }
 
 TlsClient::~TlsClient() {
@@ -61,9 +62,10 @@ bool TlsClient::initSsl(int fd) {
     return true;
 }
 
-bool TlsClient::connect() {
-    if (!m_tcp.init()) {
-        LOG_ERROR("TlsClient[{}]: TCP init/connect failed", m_id);
+bool TlsClient::connect()
+{
+    if (!m_tcp.connect()) {
+        LOG_ERROR("TlsClient[{}]: TCP connect failed", m_id);
         return false;
     }
 
@@ -76,21 +78,27 @@ bool TlsClient::connect() {
         return false;
     }
 
-    int ret = SSL_connect(m_ssl);
-    if (ret != 1) {
-        logError("SSL_connect failed");
+    while (true) {
+        int ret = SSL_connect(m_ssl);
+        if (ret == 1)
+            break;
+
+        int err = SSL_get_error(m_ssl, ret);
+        if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            continue;
+        }
+
+        LOG_ERROR("TlsClient[{}]: SSL_connect failed (ssl_err={})",
+                  m_id, err);
         stop();
         return false;
     }
 
     LOG_INFO("TlsClient[{}]: TLS Handshake complete!", m_id);
-
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags < 0){
-        return false;
-    }
-    return (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0);
+    return true;
 }
+
 
 bool TlsClient::send(const void* data, size_t len)
 {
@@ -115,10 +123,8 @@ ssize_t TlsClient::recv(void* buffer, size_t len)
 }
 
 void TlsClient::stop() {
-    if (!m_running && !m_ssl && !m_ctx)
+    if (!m_ssl && !m_ctx)
         return;
-
-    m_running = false;
 
     if (m_ssl) {
         SSL_shutdown(m_ssl);

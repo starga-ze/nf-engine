@@ -70,11 +70,9 @@ enum class Opcode : uint8_t {
     LOGOUT_RES_SUCCESS = 0x16,
     LOGOUT_RES_FAIL = 0x17,
 
-    WORLD_ENTER_REQ = 0x20,
-    WORLD_ENTER_RES = 0x21,
+    LOBBY_ENTER_REQ = 0x20,     // 32
+    LOBBY_ENTER_RES = 0x21,
 
-
-    MOVE = 0x20,                // 32
 
     INVALID = 0xFF              // 255
 };

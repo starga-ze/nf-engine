@@ -35,6 +35,10 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
             LOG_WARN("Session check and bind failed");
             return;
         }
+        else
+        {
+            LOG_INFO("Find Session, sessionId: {}", parsed.getSessionId());
+        }
     }
 
     if (parsed.getSessionId() == 0)
@@ -42,6 +46,7 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
         LOG_WARN("Invalid SessionId");
         return;
     }
+
     uint64_t sessionId = parsed.getSessionId();
 
     size_t shardIdx = selectShard(sessionId);

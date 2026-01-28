@@ -9,6 +9,11 @@ std::unique_ptr <Event> EventFactory::create(ParsedPacket &parsed) {
         case Opcode::LOGIN_REQ:
             return LoginParser::deserialize(parsed);
 
+        case Opcode::LOBBY_ENTER_REQ:
+            // TODO
+            // return LobbyParser::deserialize(parsed);
+            return nullptr;
+
         default:
             LOG_WARN("Unhandled opcode {}", static_cast<int>(parsed.opcode()));
             return nullptr;
