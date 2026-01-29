@@ -6,7 +6,6 @@
 #include "execution/login/LoginAction.h"
 #include "execution/login/LoginEvent.h"
 
-
 #include <memory>
 #include <cstdint>
 
@@ -18,15 +17,11 @@ class LoginSuccessAction;
 class LoginContext {
 public:
     LoginContext(int shardIdx, ShardManager *shardManager, DbManager *dbManger);
-
     ~LoginContext() = default;
 
     void loginReqEvent(const LoginReqEvent& ev);
-
     void loginSuccessAction(LoginSuccessAction& ac);
-
     void loginFailAction(LoginFailAction& ac);
-
     void setTxRouter(TxRouter *txRouter);
 
 private:

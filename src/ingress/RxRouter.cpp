@@ -35,10 +35,6 @@ void RxRouter::handlePacket(std::unique_ptr <Packet> packet) {
             LOG_WARN("Session check and bind failed");
             return;
         }
-        else
-        {
-            LOG_INFO("Find Session, sessionId: {}", parsed.getSessionId());
-        }
     }
 
     if (parsed.getSessionId() == 0)

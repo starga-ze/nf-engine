@@ -2,7 +2,7 @@
 #include "ShardManager.h"
 #include "util/Logger.h"
 
-#include "execution/world/WorldContext.h"
+#include "execution/market/MarketContext.h"
 
 ShardWorker::ShardWorker(size_t shardIdx, ShardManager *shardManager, DbManager *dbManager)
         : m_shardIdx(shardIdx) 
@@ -83,7 +83,7 @@ void ShardWorker::onTick(std::chrono::steady_clock::time_point now) {
 
     // LOG_TRACE("Shard idx:{}, TICK #{} | delta={}ms | elapsed={}ms", m_shardIdx, m_tickCount, deltaMs, elapsedSinceStartMs);
 
-    m_shardContext->worldContext().tick(deltaMs);
+    m_shardContext->marketContext().tick(deltaMs);
 }
 
 void ShardWorker::stop() {

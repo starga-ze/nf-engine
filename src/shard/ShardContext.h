@@ -9,7 +9,8 @@ class TxRouter;
 class DbManager;
 
 class LoginContext;
-class WorldContext;
+class LobbyContext;
+class MarketContext;
 
 
 class ShardContext {
@@ -19,7 +20,8 @@ public:
     ~ShardContext();
 
     LoginContext& loginContext();
-    WorldContext& worldContext();
+    LobbyContext& lobbyContext();
+    MarketContext& marketContext();
 
     void setTxRouter(TxRouter *txRouter);
 
@@ -28,7 +30,8 @@ private:
     DbManager *m_dbManager;
 
     std::unique_ptr <LoginContext> m_loginContext;
-    std::unique_ptr <WorldContext> m_worldContext;
+    std::unique_ptr <LobbyContext> m_lobbyContext;
+    std::unique_ptr <MarketContext> m_marketContext;
 
     int m_shardIdx;
 };
