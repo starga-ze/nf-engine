@@ -7,13 +7,16 @@
 #include "execution/market/MarketContext.h"
 
 
-ShardContext::ShardContext(int shardIdx, ShardManager *shardManager, DbManager *dbManager)
-        : m_shardIdx(shardIdx),
-          m_shardManager(shardManager),
-          m_dbManager(dbManager) {
+ShardContext::ShardContext(int shardIdx, uint8_t marketId, 
+        ShardManager *shardManager, DbManager *dbManager) : 
+    m_shardIdx(shardIdx),
+    m_marketId(marketId),
+    m_shardManager(shardManager),
+    m_dbManager(dbManager) 
+{
     m_loginContext = std::make_unique<LoginContext>(shardIdx, shardManager, dbManager);
     m_lobbyContext = std::make_unique<LobbyContext>(shardIdx, shardManager);
-    m_marketContext = std::make_unique<MarketContext>(shardIdx);
+    m_marketContext = std::make_unique<MarketContext>(shardIdx, marketId);
 }
 
 ShardContext::~ShardContext() {

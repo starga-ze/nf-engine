@@ -20,6 +20,13 @@ void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev)
     const uint64_t sessionId = ev.sessionId();
     LOG_DEBUG("LOBBY_REQ received, [session={}]", sessionId);
 
+    const auto& markets = m_shardManager->getMarkets();
+
+    for(auto& val : markets)
+    {
+        LOG_TRACE("id:{}, alias:{}", val.id, val.alias);
+    }
+
     // std::unique_ptr<Action> action;
 }
 

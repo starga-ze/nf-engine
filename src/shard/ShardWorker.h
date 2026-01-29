@@ -14,7 +14,7 @@
 
 class ShardWorker {
 public:
-    ShardWorker(size_t shardIdx, ShardManager *shardManager, DbManager *dbManager);
+    ShardWorker(size_t shardIdx, ShardManager *shardManager, DbManager *dbManager, uint8_t marketId);
 
     ~ShardWorker() = default;
 
@@ -38,6 +38,7 @@ private:
     std::atomic<bool> m_running{false};
 
     size_t m_shardIdx;
+    uint8_t m_marketId;
 
     /* event & action */
     std::queue <std::unique_ptr<Event>> m_eventQueue;
@@ -48,7 +49,7 @@ private:
 
     std::condition_variable m_cv;
 
-    std::chrono::milliseconds m_tickInterval{1000};
+    std::chrono::milliseconds m_tickInterval{3500};
 
     std::chrono::steady_clock::time_point m_startTime{};
     std::chrono::steady_clock::time_point m_lastTickTime{};

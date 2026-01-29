@@ -12,7 +12,9 @@
 ShardManager::ShardManager(size_t workerCount, ThreadManager *threadManager, DbManager *dbManager)
         : m_workerCount(workerCount),
           m_threadManager(threadManager),
-          m_dbManager(dbManager) {
+          m_dbManager(dbManager) 
+{
+    initMarkets();
     initWorkers();
 }
 
@@ -20,14 +22,26 @@ ShardManager::~ShardManager() {
     stop();
 }
 
+void ShardManager::initMarkets()
+{
+    m_markets = {
+        { 1, "M1" },
+        { 2, "M2" },
+        { 3, "M3" },
+        { 4, "M4" }
+    };
+}
+
 void ShardManager::initWorkers() {
     m_workers.resize(m_workerCount);
 
     for (size_t i = 0; i < m_workerCount; ++i) {
-        if (not m_dbManager) {
+        if (not m_dbManager) 
+        {
             LOG_TRACE("DB manager is nullptr");
         }
-        m_workers[i] = std::make_unique<ShardWorker>(i, this, m_dbManager);
+        uint8_t marketId = m_markets[i].id;
+        m_workers[i] = std::make_unique<ShardWorker>(i, this, m_dbManager, marketId);
     }
 }
 
@@ -85,3 +99,9 @@ ShardWorker *ShardManager::getWorker(size_t shardIdx) const {
 
     return m_workers[shardIdx].get();
 }
+
+const std::vector<MarketMeta>& ShardManager::getMarkets() const
+{
+    return m_markets;
+}
+

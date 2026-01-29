@@ -4,10 +4,12 @@
 
 #include "execution/market/MarketContext.h"
 
-ShardWorker::ShardWorker(size_t shardIdx, ShardManager *shardManager, DbManager *dbManager)
-        : m_shardIdx(shardIdx) 
+ShardWorker::ShardWorker(size_t shardIdx, ShardManager *shardManager, 
+        DbManager *dbManager, uint8_t marketId) : 
+    m_shardIdx(shardIdx),
+    m_marketId(marketId)
 {
-    m_shardContext = std::make_unique<ShardContext>(m_shardIdx, shardManager, dbManager);
+    m_shardContext = std::make_unique<ShardContext>(m_shardIdx, m_marketId, shardManager, dbManager);
 }
 
 void ShardWorker::processPacket() {
@@ -62,6 +64,7 @@ void ShardWorker::processPacket() {
 
         // ---- tick handling ----
         if (now >= m_nextTick) {
+            LOG_DEBUG("Shard idx:{}, handle tick", m_shardIdx);
             onTick(now);
 
             m_nextTick += m_tickInterval;

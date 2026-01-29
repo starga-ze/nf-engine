@@ -15,7 +15,7 @@ class MarketContext;
 
 class ShardContext {
 public:
-    ShardContext(int shardIdx, ShardManager *shardManager, DbManager *dbManager);
+    ShardContext(int shardIdx, uint8_t marketId, ShardManager *shardManager, DbManager *dbManager);
 
     ~ShardContext();
 
@@ -34,5 +34,6 @@ private:
     std::unique_ptr <MarketContext> m_marketContext;
 
     int m_shardIdx;
+    uint8_t m_marketId;
 };
 

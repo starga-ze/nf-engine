@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <string>
 
 class ThreadManager;
 
@@ -14,7 +15,14 @@ class Event;
 
 class Action;
 
-class ShardManager {
+struct MarketMeta
+{
+    uint8_t id;
+    std::string alias;
+};
+
+class ShardManager 
+{
 public:
     ShardManager(size_t workerCount, ThreadManager *threadManager, DbManager *dbmanager);
 
@@ -32,7 +40,10 @@ public:
 
     ShardWorker *getWorker(size_t shardIdx) const;
 
+    const std::vector<MarketMeta>& getMarkets() const;
+
 private:
+    void initMarkets();
     void initWorkers();
 
     void startWorkers();
@@ -44,5 +55,7 @@ private:
     std::atomic<bool> m_running{false};
 
     std::vector <std::unique_ptr<ShardWorker>> m_workers;
+
+    std::vector<MarketMeta> m_markets;
 };
 
