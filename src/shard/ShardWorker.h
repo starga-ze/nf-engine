@@ -31,7 +31,7 @@ public:
     ShardContext &shardContext() { return *m_shardContext; }
 
 private:
-    void onTick(std::chrono::steady_clock::time_point now);
+    void onTick();
 
     std::unique_ptr <ShardContext> m_shardContext;
 
@@ -50,10 +50,9 @@ private:
     std::condition_variable m_cv;
 
     std::chrono::milliseconds m_tickInterval{3500};
-
-    std::chrono::steady_clock::time_point m_startTime{};
-    std::chrono::steady_clock::time_point m_lastTickTime{};
     std::chrono::steady_clock::time_point m_nextTick{};
+    std::chrono::steady_clock::time_point m_prevTickTime{};
+    bool m_hasPrevTick = false;
 
     uint64_t m_tickCount{0};
 };

@@ -16,13 +16,10 @@ void ShardWorker::processPacket() {
     m_running.store(true, std::memory_order_release);
 
     auto now = std::chrono::steady_clock::now();
-    m_startTime     = now;
-    m_lastTickTime  = now;
-    m_nextTick      = std::chrono::steady_clock::now() + m_tickInterval;
+    m_nextTick = std::chrono::steady_clock::now() + m_tickInterval;
 
     while (m_running.load(std::memory_order_acquire)) {
         std::unique_ptr <Event> event;
-
         {
             std::unique_lock <std::mutex> lock(m_eventLock);
 
@@ -64,8 +61,7 @@ void ShardWorker::processPacket() {
 
         // ---- tick handling ----
         if (now >= m_nextTick) {
-            LOG_DEBUG("Shard idx:{}, handle tick", m_shardIdx);
-            onTick(now);
+            onTick();
 
             m_nextTick += m_tickInterval;
 
@@ -77,16 +73,25 @@ void ShardWorker::processPacket() {
     }
 }
 
-void ShardWorker::onTick(std::chrono::steady_clock::time_point now) {
-    const auto deltaMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_lastTickTime).count();
-    const auto elapsedSinceStartMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - m_startTime).count();
+void ShardWorker::onTick() {
+    auto now = std::chrono::steady_clock::now();
 
-    m_lastTickTime = now;
-    ++m_tickCount;
+    if (m_hasPrevTick) 
+    {
+        auto deltaMs =
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - m_prevTickTime).count();
 
-    // LOG_TRACE("Shard idx:{}, TICK #{} | delta={}ms | elapsed={}ms", m_shardIdx, m_tickCount, deltaMs, elapsedSinceStartMs);
+        LOG_DEBUG("Shard idx:{}, handle tick (delta={}ms)", m_shardIdx, deltaMs);
+    } 
+    else 
+    {
+        LOG_DEBUG("Shard idx:{}, handle tick (first)", m_shardIdx);
+        m_hasPrevTick = true;
+    }
 
-    m_shardContext->marketContext().tick(deltaMs);
+    m_prevTickTime = now;
+
+    m_shardContext->marketContext().tick();
 }
 
 void ShardWorker::stop() {

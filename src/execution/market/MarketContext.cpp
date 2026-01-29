@@ -18,7 +18,7 @@ void MarketContext::init()
     //TODO, load snapshot with database (only 1st check)
 }
 
-void MarketContext::tick(uint64_t deltaMs) {
+void MarketContext::tick() {
 
 }
 

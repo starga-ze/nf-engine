@@ -10,7 +10,7 @@ public:
     explicit MarketContext(int shardIdx, uint8_t marketId);
     ~MarketContext();
 
-    void tick(uint64_t deltaMs);
+    void tick();
 
 private:
     void init();
