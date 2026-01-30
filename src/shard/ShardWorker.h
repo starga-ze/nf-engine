@@ -49,7 +49,7 @@ private:
 
     std::condition_variable m_cv;
 
-    std::chrono::milliseconds m_tickInterval{3500};
+    std::chrono::milliseconds m_tickInterval{1500};
     std::chrono::steady_clock::time_point m_nextTick{};
     std::chrono::steady_clock::time_point m_prevTickTime{};
     bool m_hasPrevTick = false;

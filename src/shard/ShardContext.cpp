@@ -27,6 +27,10 @@ void ShardContext::setTxRouter(TxRouter *txRouter) {
     m_lobbyContext->setTxRouter(txRouter);
 }
 
+ShardManager& ShardContext::shardManager() {
+    return *m_shardManager;
+}
+
 LoginContext& ShardContext::loginContext() {
     return *m_loginContext;
 }

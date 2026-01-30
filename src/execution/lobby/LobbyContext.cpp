@@ -1,10 +1,10 @@
 #include "LobbyContext.h"
 #include "shard/ShardManager.h"
+#include "egress/ActionFactory.h"
+#include "util/Logger.h"
 
 #include "execution/lobby/LobbyEvent.h"
-#include "egress/ActionFactory.h"
-
-#include "util/Logger.h"
+#include "execution/lobby/LobbyAction.h"
 
 #include <cstring>
 #include <string>
@@ -20,14 +20,9 @@ void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev)
     const uint64_t sessionId = ev.sessionId();
     LOG_DEBUG("LOBBY_REQ received, [session={}]", sessionId);
 
-    const auto& markets = m_shardManager->getMarkets();
+    std::unique_ptr<Action> action = ActionFactory::create(Opcode::LOBBY_RES, sessionId);
 
-    for(auto& val : markets)
-    {
-        LOG_TRACE("id:{}, alias:{}", val.id, val.alias);
-    }
-
-    // std::unique_ptr<Action> action = ActionFactory::create(Opcode::LOBBY_RES, sessionId);
+    m_shardManager->commit(m_shardIdx, std::move(action));
 }
 
 void LobbyContext::setTxRouter(TxRouter *txRouter)

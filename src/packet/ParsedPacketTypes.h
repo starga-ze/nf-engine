@@ -1,58 +1,16 @@
 #pragma once
 
 /*
- *       Common Packet Structure (v2)
+ *              <Common Packet Structure (16 bytes)>
  *
- * ┌─────────────────────────────────────┐
- * │    CommonPacketHeader (16 bytes)    │
- * │ ┌────────┬───────────┬────────────┐ │
- * │ │ ver(1) │ opcode(1) │ bodyLen(2) │ │
- * │ └────────┴───────────┴────────────┘ │
- * │            sessionId (8)            │
- * │      flags / reserved (4 bytes)     │
- * ├─────────────────────────────────────┤
- * │      Body (N bytes = bodyLen)       │
- * └─────────────────────────────────────┘
+ *  Note:
+ * ┌────────┬───────────┬────────────┬──────────────┬──────────┐
+ * │ ver(1) │ opcode(1) │ bodyLen(2) │ sessionId(8) │ flags(4) │
+ * ├────────┴───────────┴────────────┴──────────────┴──────────┤
+ * │                 Body (N bytes = bodyLen)                  │
+ * └───────────────────────────────────────────────────────────┘
  */
 
-/*
- *          LOGIN REQ BODY (0x10)
- *
- *  SessionId MUST be 0 for LOGIN_REQ
- *
- * ┌─────────────────────────────────────┐
- * │ idLen   (uint16)                    │
- * ├─────────────────────────────────────┤
- * │ idBytes (char[idLen])               │
- * ├─────────────────────────────────────┤
- * │ pwLen   (uint16)                    │
- * ├─────────────────────────────────────┤
- * │ pwBytes (char[pwLen])               │
- * └─────────────────────────────────────┘
- */
-
-/*
- *      LOGIN RES SUCCESS BODY (0x11)
- *
- *  SessionId is delivered via CommonPacketHeader.
- *  Client must send including the sessionId
- *
- * ┌─────────────────────────────────────┐
- * │ resultCode (uint8) = 1              │
- * ├─────────────────────────────────────┤
- * │ optional fields (future)            │
- * └─────────────────────────────────────┘
- */
-
-/*
- *        LOGIN RES FAIL BODY (0x12)
- *
- * ┌─────────────────────────────────────┐
- * │ resultCode (uint8) = 0              │
- * ├─────────────────────────────────────┤
- * │ errorCode (uint16)                  │
- * └─────────────────────────────────────┘
- */
 
 
 #include "packet/Packet.h"

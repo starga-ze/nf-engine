@@ -1,7 +1,7 @@
 #include "LoginContext.h"
-#include "util/Logger.h"
 #include "shard/ShardManager.h"
 #include "egress/ActionFactory.h"
+#include "util/Logger.h"
 
 #include "execution/login/LoginAction.h"
 #include "execution/login/LoginEvent.h"

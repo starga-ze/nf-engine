@@ -1,12 +1,11 @@
 #include "LoginBuilder.h"
 #include "util/Logger.h"
-#include "execution/login/LoginAction.h"
 
 static constexpr uint8_t VERSION = 0x01;
 static constexpr size_t HEADER_SIZE = 16;
 static constexpr uint16_t BODY_LEN = 1;
 
-std::unique_ptr<Action> LoginBuilder::serialize(Opcode opcode, uint64_t sessionId)
+std::vector<uint8_t> LoginBuilder::serialize(Opcode opcode, uint64_t sessionId)
 {
     switch(opcode)
     {
@@ -17,11 +16,11 @@ std::unique_ptr<Action> LoginBuilder::serialize(Opcode opcode, uint64_t sessionI
             return buildLoginResFail(opcode, sessionId);
 
         default:
-            return nullptr;
+            return {};
     }
 }
 
-std::unique_ptr<Action> LoginBuilder::buildLoginResSuccess(Opcode opcode, uint64_t sessionId)
+std::vector<uint8_t> LoginBuilder::buildLoginResSuccess(Opcode opcode, uint64_t sessionId)
 {
     std::vector<uint8_t> payload;
     payload.resize(HEADER_SIZE + BODY_LEN);
@@ -47,10 +46,10 @@ std::unique_ptr<Action> LoginBuilder::buildLoginResSuccess(Opcode opcode, uint64
     // body
     payload[16] = 0x01;
 
-    return std::make_unique<LoginSuccessAction>(sessionId, opcode, std::move(payload));
+    return payload;
 }
 
-std::unique_ptr<Action> LoginBuilder::buildLoginResFail(Opcode opcode, uint64_t sessionId)
+std::vector<uint8_t> LoginBuilder::buildLoginResFail(Opcode opcode, uint64_t sessionId)
 {
     std::vector<uint8_t> payload;
     payload.resize(HEADER_SIZE + BODY_LEN);
@@ -76,5 +75,5 @@ std::unique_ptr<Action> LoginBuilder::buildLoginResFail(Opcode opcode, uint64_t 
     // body
     payload[16] = 0x00;
 
-    return std::make_unique<LoginFailAction>(sessionId, opcode, std::move(payload));
+    return payload;
 }

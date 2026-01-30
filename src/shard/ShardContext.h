@@ -19,6 +19,7 @@ public:
 
     ~ShardContext();
 
+    ShardManager& shardManager();
     LoginContext& loginContext();
     LobbyContext& lobbyContext();
     MarketContext& marketContext();
@@ -26,8 +27,8 @@ public:
     void setTxRouter(TxRouter *txRouter);
 
 private:
-    ShardManager *m_shardManager;
-    DbManager *m_dbManager;
+    ShardManager* m_shardManager;
+    DbManager* m_dbManager;
 
     std::unique_ptr <LoginContext> m_loginContext;
     std::unique_ptr <LobbyContext> m_lobbyContext;
