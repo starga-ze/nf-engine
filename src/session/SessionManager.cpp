@@ -102,6 +102,10 @@ bool SessionManager::getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxS
             out.protocol = Protocol::TLS;
             break;
 
+        case Opcode::LOBBY_RES:
+            out.protocol = Protocol::TCP;
+            break;
+
         default:
             out.protocol = Protocol::UNKNOWN;
             return false;

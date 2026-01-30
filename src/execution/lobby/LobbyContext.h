@@ -4,13 +4,14 @@
 #include "packet/ParsedPacket.h"
 
 #include "execution/lobby/LobbyEvent.h"
-//#include "execution/lobby/LobbyAction.h"
+#include "execution/lobby/LobbyAction.h"
 
 #include <memory>
 #include <cstdint>
 
 class ShardManager;
 class LobbyReqEvent;
+class LobbyEntryAction;
 
 class LobbyContext
 {
@@ -19,6 +20,8 @@ public:
     ~LobbyContext() = default;
 
     void lobbyReqEvent(const LobbyReqEvent& ev);
+    void lobbyEntryAction(LobbyEntryAction& ac);
+
     void setTxRouter(TxRouter *txRouter);
 
 private:

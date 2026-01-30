@@ -3,9 +3,6 @@
 #include "egress/ActionFactory.h"
 #include "util/Logger.h"
 
-#include "execution/login/LoginAction.h"
-#include "execution/login/LoginEvent.h"
-
 #include <cstring>
 #include <string>
 
@@ -60,8 +57,10 @@ void LoginContext::loginReqEvent(const LoginReqEvent& ev) {
 }
 
 void LoginContext::loginSuccessAction(LoginSuccessAction& ac) {
-    if (not m_txRouter) {
+    if (not m_txRouter) 
+    {
         LOG_FATAL("TxRouter is nullptr");
+        return;
     }
 
     const uint64_t sessionId = ac.sessionId();

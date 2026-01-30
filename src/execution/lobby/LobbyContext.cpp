@@ -3,9 +3,6 @@
 #include "egress/ActionFactory.h"
 #include "util/Logger.h"
 
-#include "execution/lobby/LobbyEvent.h"
-#include "execution/lobby/LobbyAction.h"
-
 #include <cstring>
 #include <string>
 
@@ -28,4 +25,22 @@ void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev)
 void LobbyContext::setTxRouter(TxRouter *txRouter)
 {
     m_txRouter = txRouter;
+}
+
+void LobbyContext::lobbyEntryAction(LobbyEntryAction& ac)
+{
+    if (not m_txRouter)
+    {
+        LOG_FATAL("TxRouter is nullptr");
+        return;
+    }
+
+    const uint64_t sessionId = ac.sessionId();
+    Opcode opcode = ac.opcode();
+
+    LOG_DEBUG("LOBBY_ENTRY send, [session={}]", sessionId);
+
+    auto payload = ac.takePayload();
+    
+    m_txRouter->handlePacket(sessionId, opcode, std::move(payload));
 }

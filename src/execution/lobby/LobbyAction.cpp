@@ -11,5 +11,5 @@ LobbyEntryAction::LobbyEntryAction(uint64_t sessionId, Opcode opcode) :
 void LobbyEntryAction::handleAction(ShardContext& shardContext)
 {
     m_payload = LobbyBuilder::serialize(m_opcode, m_sessionId, shardContext);
-    //shardContext.lobbyContext().lobbyEntryAction(*this);
+    shardContext.lobbyContext().lobbyEntryAction(*this);
 }
