@@ -11,10 +11,10 @@ protected:
     LobbyEvent(uint64_t sessionId);
 };
 
-class LobbyReqEvent : public LobbyEvent
+class LobbyEntryReqEvent : public LobbyEvent
 {
 public:
-    LobbyReqEvent(uint64_t sessionId, std::vector<uint8_t> payload);
+    LobbyEntryReqEvent(uint64_t sessionId, std::vector<uint8_t> payload);
 
     void handleEvent(ShardContext& shardContext) override;
 

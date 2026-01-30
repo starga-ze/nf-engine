@@ -12,12 +12,12 @@ LobbyContext::LobbyContext(int shardIdx, ShardManager* shardManager) :
 {
 }
 
-void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev) 
+void LobbyContext::lobbyEntryReqEvent(const LobbyEntryReqEvent& ev) 
 {
     const uint64_t sessionId = ev.sessionId();
-    LOG_DEBUG("LOBBY_REQ received, [session={}]", sessionId);
+    LOG_DEBUG("LOBBY_ENTRY_REQ received, [session={}]", sessionId);
 
-    std::unique_ptr<Action> action = ActionFactory::create(Opcode::LOBBY_RES, sessionId);
+    std::unique_ptr<Action> action = ActionFactory::create(Opcode::LOBBY_ENTRY_RES, sessionId);
 
     m_shardManager->commit(m_shardIdx, std::move(action));
 }
@@ -27,7 +27,7 @@ void LobbyContext::setTxRouter(TxRouter *txRouter)
     m_txRouter = txRouter;
 }
 
-void LobbyContext::lobbyEntryAction(LobbyEntryAction& ac)
+void LobbyContext::lobbyEntryResAction(LobbyEntryResAction& ac)
 {
     if (not m_txRouter)
     {
@@ -38,7 +38,7 @@ void LobbyContext::lobbyEntryAction(LobbyEntryAction& ac)
     const uint64_t sessionId = ac.sessionId();
     Opcode opcode = ac.opcode();
 
-    LOG_DEBUG("LOBBY_ENTRY send, [session={}]", sessionId);
+    LOG_DEBUG("LOBBY_ENTRY_RES send, [session={}]", sessionId);
 
     auto payload = ac.takePayload();
     

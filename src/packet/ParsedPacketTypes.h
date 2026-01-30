@@ -32,7 +32,7 @@
  *
  *
  *
- *                    LOGIN RES SUCCESS (0x11)
+ *                    LOGIN SUCCESS RES (0x11)
  *
  *  - sessionId is delivered via Common Header
  *
@@ -47,7 +47,7 @@
  *
  *
  *
- *                     LOGIN RES FAIL (0x12)
+ *                     LOGIN FAIL RES (0x12)
  *
  * ┌────────┬───────────┬────────────┬──────────────┬──────────┐
  * │  ver   │ opcode=12 │ bodyLen=3  │ sessionId    │ flags    │
@@ -60,7 +60,7 @@
  *
  *
  *
- *                       LOBBY REQ (0x20)
+ *                    LOBBY ENTRY REQ (0x20)
  *
  *  - requests market/channel list after login
  *  - Body is empty
@@ -73,7 +73,7 @@
  *
  *
  *
- *                       LOBBY RES (0x21)
+ *                    LOBBY ETNRY RES (0x21)
  *
  *  - responds with available market/channel list
  *
@@ -112,16 +112,11 @@ enum class PacketVersion : uint8_t {
 
 enum class Opcode : uint8_t {
     LOGIN_REQ = 0x10,           // 16
-    LOGIN_RES_SUCCESS = 0x11,   // 17
-    LOGIN_RES_FAIL = 0x12,
+    LOGIN_SUCCESS_RES = 0x11,   // 17
+    LOGIN_FAIL_RES = 0x12,
 
-    LOGOUT_REQ = 0x15,
-    LOGOUT_RES_SUCCESS = 0x16,
-    LOGOUT_RES_FAIL = 0x17,
-
-    LOBBY_REQ = 0x20,     // 32
-    LOBBY_RES = 0x21,
-
+    LOBBY_ENTRY_REQ = 0x20,     // 32
+    LOBBY_ENTRY_RES = 0x21,
 
     INVALID = 0xFF              // 255
 };

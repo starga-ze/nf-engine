@@ -12,5 +12,5 @@ public:
     static std::unique_ptr<Event> deserialize(ParsedPacket& parsed);
 
 private:
-    static std::unique_ptr<Event> parseLobbyReq(ParsedPacket& packet);
+    static std::unique_ptr<Event> parseLobbyEntryReq(ParsedPacket& packet);
 };

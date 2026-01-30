@@ -19,10 +19,10 @@ void TxRouter::handlePacket(uint64_t sessionId, Opcode opcode, std::vector<uint8
         return;
     }
 
-    if (opcode == Opcode::LOGIN_RES_SUCCESS) {
+    if (opcode == Opcode::LOGIN_SUCCESS_RES) {
         m_sessionManager->setState(sessionId, SessionState::AUTH);
     }
-    else if (opcode == Opcode::LOGIN_RES_FAIL) {
+    else if (opcode == Opcode::LOGIN_FAIL_RES) {
         m_sessionManager->erase(sessionId);
     }
 

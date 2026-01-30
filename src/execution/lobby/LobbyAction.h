@@ -12,10 +12,10 @@ public:
     virtual ~LobbyAction() = default;
 };
 
-class LobbyEntryAction final : public LobbyAction
+class LobbyEntryResAction final : public LobbyAction
 {
 public:
-    LobbyEntryAction(uint64_t sessionId, Opcode opcode);
+    LobbyEntryResAction(uint64_t sessionId, Opcode opcode);
 
     void handleAction(ShardContext& shardContext) override;
 

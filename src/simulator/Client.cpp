@@ -48,7 +48,7 @@ void Client::start()
     while(m_running)
     {
         lobbyPhase();
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     }
 }
 
@@ -69,7 +69,7 @@ void Client::loginPhase()
         if (n > 0)
             break;
         if (n < 0) {
-            LOG_FATAL("TLS recv fatal");
+            LOG_FATAL("TLS recv fail");
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -86,8 +86,25 @@ void Client::lobbyPhase()
     auto pkt = buildEnterLobbyReq();
 
     if (not m_tcpClient->send(pkt.data(), pkt.size())) {
-        LOG_FATAL("ENTER_LOBBY_REQ send failed");
+        LOG_FATAL("LOBBY_ENTRY_REQ send failed");
         return;
+    }
+
+    uint8_t buf[1024];
+    ssize_t n;
+
+    while(true) {
+        n = m_tcpClient->recv(buf, sizeof(buf));
+        if (n > 0)
+        {
+            break;
+        }
+        if (n < 0)
+        {
+            LOG_FATAL("TCP recv fail");
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

@@ -11,8 +11,8 @@
 
 class ShardManager;
 class LoginReqEvent;
-class LoginFailAction;
-class LoginSuccessAction;
+class LoginFailResAction;
+class LoginSuccessResAction;
 
 class LoginContext {
 public:
@@ -20,8 +20,8 @@ public:
     ~LoginContext() = default;
 
     void loginReqEvent(const LoginReqEvent& ev);
-    void loginSuccessAction(LoginSuccessAction& ac);
-    void loginFailAction(LoginFailAction& ac);
+    void loginSuccessResAction(LoginSuccessResAction& ac);
+    void loginFailResAction(LoginFailResAction& ac);
     void setTxRouter(TxRouter *txRouter);
 
 private:

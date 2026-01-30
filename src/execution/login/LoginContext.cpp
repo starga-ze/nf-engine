@@ -31,20 +31,20 @@ void LoginContext::loginReqEvent(const LoginReqEvent& ev) {
     if (m_enableDb) {
         if (!verify(std::string{id}, std::string{pw})) {
             LOG_WARN("Login failed. [session={}, id='{}']", sessionId, id);
-            action = ActionFactory::create(Opcode::LOGIN_RES_FAIL, sessionId);
+            action = ActionFactory::create(Opcode::LOGIN_FAIL_RES, sessionId);
         } else {
             LOG_TRACE("Login success. [session={}, id='{}']", sessionId, id);
-            action = ActionFactory::create(Opcode::LOGIN_RES_SUCCESS, sessionId);
+            action = ActionFactory::create(Opcode::LOGIN_SUCCESS_RES, sessionId);
         }
     } else {
         LOG_WARN("Verify process intentionally passed.");
 
         if (id == "test" && pw == "test") {
             LOG_DEBUG("Login Success");
-            action = ActionFactory::create(Opcode::LOGIN_RES_SUCCESS, sessionId);
+            action = ActionFactory::create(Opcode::LOGIN_SUCCESS_RES, sessionId);
         } else {
             LOG_DEBUG("Login Failed");
-            action = ActionFactory::create(Opcode::LOGIN_RES_FAIL, sessionId);
+            action = ActionFactory::create(Opcode::LOGIN_FAIL_RES, sessionId);
         }
     }
 
@@ -56,7 +56,7 @@ void LoginContext::loginReqEvent(const LoginReqEvent& ev) {
     m_shardManager->commit(m_shardIdx, std::move(action));
 }
 
-void LoginContext::loginSuccessAction(LoginSuccessAction& ac) {
+void LoginContext::loginSuccessResAction(LoginSuccessResAction& ac) {
     if (not m_txRouter) 
     {
         LOG_FATAL("TxRouter is nullptr");
@@ -66,14 +66,14 @@ void LoginContext::loginSuccessAction(LoginSuccessAction& ac) {
     const uint64_t sessionId = ac.sessionId();
     Opcode opcode = ac.opcode();
 
-    LOG_DEBUG("LOGIN_SUCCESS send, [session={}]", sessionId);
+    LOG_DEBUG("LOGIN_SUCCESS_RES send, [session={}]", sessionId);
 
     auto payload = ac.takePayload();
 
     m_txRouter->handlePacket(sessionId, opcode, std::move(payload));
 }
 
-void LoginContext::loginFailAction(LoginFailAction& ac) {
+void LoginContext::loginFailResAction(LoginFailResAction& ac) {
     if (not m_txRouter) {
         LOG_FATAL("TxRouter is nullptr");
     }
@@ -81,7 +81,7 @@ void LoginContext::loginFailAction(LoginFailAction& ac) {
     const uint64_t sessionId = ac.sessionId();
     Opcode opcode = ac.opcode();
 
-    LOG_DEBUG("LOGIN_FAIL send, [session={}]", sessionId);
+    LOG_DEBUG("LOGIN_FAIL_RES send, [session={}]", sessionId);
 
     auto payload = ac.takePayload();
 

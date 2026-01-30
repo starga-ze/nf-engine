@@ -9,16 +9,16 @@ std::unique_ptr <Action> ActionFactory::create(Opcode opcode, uint64_t sessionId
     std::unique_ptr<Action> action;
 
     switch (opcode) {
-        case Opcode::LOGIN_RES_SUCCESS:
-            action = std::make_unique<LoginSuccessAction>(sessionId, opcode);
+        case Opcode::LOGIN_SUCCESS_RES:
+            action = std::make_unique<LoginSuccessResAction>(sessionId, opcode);
             return action;
 
-        case Opcode::LOGIN_RES_FAIL:
-            action = std::make_unique<LoginFailAction>(sessionId, opcode);
+        case Opcode::LOGIN_FAIL_RES:
+            action = std::make_unique<LoginFailResAction>(sessionId, opcode);
             return action;
 
-        case Opcode::LOBBY_RES:
-            action = std::make_unique<LobbyEntryAction>(sessionId, opcode);
+        case Opcode::LOBBY_ENTRY_RES:
+            action = std::make_unique<LobbyEntryResAction>(sessionId, opcode);
             return action;
 
         default:

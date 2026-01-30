@@ -9,10 +9,10 @@ std::vector<uint8_t> LoginBuilder::serialize(Opcode opcode, uint64_t sessionId)
 {
     switch(opcode)
     {
-        case Opcode::LOGIN_RES_SUCCESS:
+        case Opcode::LOGIN_SUCCESS_RES:
             return buildLoginResSuccess(opcode, sessionId);
 
-        case Opcode::LOGIN_RES_FAIL:
+        case Opcode::LOGIN_FAIL_RES:
             return buildLoginResFail(opcode, sessionId);
 
         default:

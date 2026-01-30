@@ -7,14 +7,14 @@ LobbyEvent::LobbyEvent(uint64_t sessionId):
 
 }
 
-LobbyReqEvent::LobbyReqEvent(uint64_t sessionId, std::vector<uint8_t> payload) :
+LobbyEntryReqEvent::LobbyEntryReqEvent(uint64_t sessionId, std::vector<uint8_t> payload) :
     LobbyEvent(sessionId),
     m_payload(std::move(payload))
 {
 
 }
 
-void LobbyReqEvent::handleEvent(ShardContext& shardContext)
+void LobbyEntryReqEvent::handleEvent(ShardContext& shardContext)
 {
-    shardContext.lobbyContext().lobbyReqEvent(*this);
+    shardContext.lobbyContext().lobbyEntryReqEvent(*this);
 }

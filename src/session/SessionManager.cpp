@@ -48,8 +48,7 @@ bool SessionManager::create(ParsedPacket& parsed)
     const int fd = parsed.getFd();
 
     std::lock_guard<std::mutex> lock(m_lock);
-
-    
+  
     if (m_tlsFdToSessionId.count(fd) != 0) {
         LOG_WARN("Duplicate LOGIN_REQ, fd={}", fd);
         return false;
@@ -97,12 +96,12 @@ bool SessionManager::getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxS
     const Session& s = *it->second;
 
     switch(opcode) {
-        case Opcode::LOGIN_RES_SUCCESS:
-        case Opcode::LOGIN_RES_FAIL:
+        case Opcode::LOGIN_SUCCESS_RES:
+        case Opcode::LOGIN_FAIL_RES:
             out.protocol = Protocol::TLS;
             break;
 
-        case Opcode::LOBBY_RES:
+        case Opcode::LOBBY_ENTRY_RES:
             out.protocol = Protocol::TCP;
             break;
 

@@ -10,8 +10,8 @@
 #include <cstdint>
 
 class ShardManager;
-class LobbyReqEvent;
-class LobbyEntryAction;
+class LobbyEntryReqEvent;
+class LobbyEntryResAction;
 
 class LobbyContext
 {
@@ -19,8 +19,8 @@ public:
     LobbyContext(int shardIdx, ShardManager* shardManager);
     ~LobbyContext() = default;
 
-    void lobbyReqEvent(const LobbyReqEvent& ev);
-    void lobbyEntryAction(LobbyEntryAction& ac);
+    void lobbyEntryReqEvent(const LobbyEntryReqEvent& ev);
+    void lobbyEntryResAction(LobbyEntryResAction& ac);
 
     void setTxRouter(TxRouter *txRouter);
 

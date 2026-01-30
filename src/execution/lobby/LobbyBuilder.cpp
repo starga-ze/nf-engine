@@ -23,7 +23,7 @@ LobbyBuilder::serialize(Opcode opcode,
 {
     switch(opcode)
     {
-        case Opcode::LOBBY_RES:
+        case Opcode::LOBBY_ENTRY_RES:
             return buildLobbyRes(opcode, sessionId, shardContext);
 
         default:
@@ -36,8 +36,6 @@ LobbyBuilder::buildLobbyRes(Opcode opcode,
                            uint64_t sessionId,
                            ShardContext& shardContext)
 {
-    LOG_DEBUG("Building LOBBY_RES payload");
-
     const auto& markets = shardContext.shardManager().getMarkets();
 
     uint16_t count = static_cast<uint16_t>(markets.size());

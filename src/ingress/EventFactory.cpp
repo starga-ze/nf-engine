@@ -11,7 +11,7 @@ std::unique_ptr <Event> EventFactory::create(ParsedPacket &parsed) {
         case Opcode::LOGIN_REQ:
             return LoginParser::deserialize(parsed);
 
-        case Opcode::LOBBY_REQ:
+        case Opcode::LOBBY_ENTRY_REQ:
             return LobbyParser::deserialize(parsed);
             return nullptr;
 

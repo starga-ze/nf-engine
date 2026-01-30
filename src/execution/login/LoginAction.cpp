@@ -2,24 +2,24 @@
 #include "execution/login/LoginContext.h"
 #include "execution/login/LoginBuilder.h"
 
-LoginSuccessAction::LoginSuccessAction(uint64_t sessionId, Opcode opcode) : 
+LoginSuccessResAction::LoginSuccessResAction(uint64_t sessionId, Opcode opcode) : 
     m_sessionId(sessionId),
     m_opcode(opcode)
 {
 }
 
-void LoginSuccessAction::handleAction(ShardContext &shardContext) {
+void LoginSuccessResAction::handleAction(ShardContext &shardContext) {
     m_payload = LoginBuilder::serialize(m_opcode, m_sessionId);
-    shardContext.loginContext().loginSuccessAction(*this);
+    shardContext.loginContext().loginSuccessResAction(*this);
 }
 
-LoginFailAction::LoginFailAction(uint64_t sessionId, Opcode opcode) : 
+LoginFailResAction::LoginFailResAction(uint64_t sessionId, Opcode opcode) : 
     m_sessionId(sessionId),
     m_opcode(opcode)
 {
 }
 
-void LoginFailAction::handleAction(ShardContext &shardContext) {
+void LoginFailResAction::handleAction(ShardContext &shardContext) {
     m_payload = LoginBuilder::serialize(m_opcode, m_sessionId);
-    shardContext.loginContext().loginFailAction(*this);
+    shardContext.loginContext().loginFailResAction(*this);
 }
