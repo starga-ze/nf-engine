@@ -100,6 +100,12 @@ void ShardWorker::stop() {
 }
 
 void ShardWorker::enqueueEvent(std::unique_ptr <Event> event) {
+    if (not event)
+    {
+        return;
+    }
+
+    /* MPSC Queue (protocol worker -> shard worker) */
     {
         std::lock_guard <std::mutex> lock(m_eventLock);
         m_eventQueue.push(std::move(event));
@@ -108,14 +114,23 @@ void ShardWorker::enqueueEvent(std::unique_ptr <Event> event) {
 }
 
 void ShardWorker::enqueueAction(std::unique_ptr <Action> action) {
-    if (not action) {
+    if (not action) 
+    {
         return;
     }
+    
+    /* Single-Thread Queue (shard worker -> shard worker)
+     * Action MUST be created and enqueued only from the shard-worker thread.
+     * If an action needs to originate from another thread, enqueue Event instead.
+     */
+    m_actionQueue.push(std::move(action));
 
+    /* 
     {
         std::lock_guard <std::mutex> lock(m_actionLock);
         m_actionQueue.push(std::move(action));
     }
+    */
     m_cv.notify_one();
 }
 

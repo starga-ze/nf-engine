@@ -35,12 +35,15 @@ void ShardManager::initMarkets()
 void ShardManager::initWorkers() {
     m_workers.resize(m_workerCount);
 
+    const size_t marketCount = m_markets.size();
+
     for (size_t i = 0; i < m_workerCount; ++i) {
         if (not m_dbManager) 
         {
             LOG_TRACE("DB manager is nullptr");
         }
-        uint8_t marketId = m_markets[i].id;
+        uint8_t marketId = m_markets[i % marketCount].id;
+
         m_workers[i] = std::make_unique<ShardWorker>(i, this, m_dbManager, marketId);
     }
 }

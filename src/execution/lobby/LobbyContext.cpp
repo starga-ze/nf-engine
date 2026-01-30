@@ -9,10 +9,10 @@
 #include <cstring>
 #include <string>
 
-LobbyContext::LobbyContext(int shardIdx, ShardManager* shardManager)
+LobbyContext::LobbyContext(int shardIdx, ShardManager* shardManager) :
+    m_shardManager(shardManager),
+    m_shardIdx(shardIdx)
 {
-    m_shardManager = shardManager;
-    m_shardIdx = shardIdx;
 }
 
 void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev) 
@@ -27,7 +27,7 @@ void LobbyContext::lobbyReqEvent(const LobbyReqEvent& ev)
         LOG_TRACE("id:{}, alias:{}", val.id, val.alias);
     }
 
-    // std::unique_ptr<Action> action;
+    // std::unique_ptr<Action> action = ActionFactory::create(Opcode::LOBBY_RES, sessionId);
 }
 
 void LobbyContext::setTxRouter(TxRouter *txRouter)

@@ -9,14 +9,17 @@
 #include <cstring>
 #include <string>
 
-LoginContext::LoginContext(int shardIdx, ShardManager *shardManager, DbManager *dbManager) {
+LoginContext::LoginContext(int shardIdx, ShardManager *shardManager, DbManager *dbManager) :
+    m_dbManager(dbManager),
+    m_shardManager(shardManager),
+    m_shardIdx(shardIdx)
+{
     m_enableDb = false;
-    if (dbManager) {
+
+    if (dbManager) 
+    {
         m_enableDb = true;
-        m_dbManager = dbManager;
     }
-    m_shardManager = shardManager;
-    m_shardIdx = shardIdx;
 }
 
 void LoginContext::loginReqEvent(const LoginReqEvent& ev) {
