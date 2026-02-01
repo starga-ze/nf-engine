@@ -157,7 +157,7 @@ void Core::startThreads() {
 
     m_threadManager->addThread("tcp_reactor",
                                std::bind(&TcpServer::start, m_tcpServer.get()),
-                               std::bind(&TcpServer::stopReact, m_tcpServer.get()));
+                               std::bind(&TcpServer::stop, m_tcpServer.get()));
 
     m_threadManager->addThread("shard_manager",
                                std::bind(&ShardManager::start, m_shardManager.get()),
@@ -167,33 +167,12 @@ void Core::startThreads() {
                                std::bind(&SessionManager::start, m_sessionManager.get()),
                                std::bind(&SessionManager::stop, m_sessionManager.get()));
 
+    /*
     for (int i = 0; i < m_clients; ++i) {
         auto &client = m_clientList[i];
         m_threadManager->addThread("client_" + std::to_string(i + 1),
                 std::bind(&Client::start, client.get()),
                 std::bind(&Client::stop, client.get()));
-    }
-
-    /*
-    for (int i = 0; i < m_udpClients; ++i) {
-        auto &udpClient = m_udpClientList[i];
-        m_threadManager->addThread("udp_client_" + std::to_string(i),
-                                   std::bind(&UdpClient::start, udpClient.get()),
-                                   std::bind(&UdpClient::stop, udpClient.get()));
-    }
-
-    for (int i = 0; i < m_tcpClients; ++i) {
-        auto &tcpClient = m_tcpClientList[i];
-        m_threadManager->addThread("tcp_client_" + std::to_string(i),
-                                   std::bind(&TcpClient::start, tcpClient.get()),
-                                   std::bind(&TcpClient::stop, tcpClient.get()));
-    }
-
-    for (int i = 0; i < m_tlsClients; ++i) {
-        auto &tlsClient = m_tlsClientList[i];
-        m_threadManager->addThread("tls_client_" + std::to_string(i),
-                                   std::bind(&TlsClient::start, tlsClient.get()),
-                                   std::bind(&TlsClient::stop, tlsClient.get()));
     }
     */
 }
@@ -204,26 +183,6 @@ void Core::initializeClients() {
     for (int i = 0; i < m_clients; ++i) {
         m_clientList.emplace_back(std::make_unique<Client>(i + 1, m_udpServerPort, m_tcpServerPort));
     }
-
-    /*
-    m_udpClientList.clear();
-    m_udpClientList.reserve(m_udpClients);
-    for (int i = 0; i < m_udpClients; ++i) {
-        m_udpClientList.emplace_back(std::make_unique<UdpClient>(i + 1, m_udpServerPort));
-    }
-
-    m_tcpClientList.clear();
-    m_tcpClientList.reserve(m_tcpClients);
-    for (int i = 0; i < m_tcpClients; ++i) {
-        m_tcpClientList.emplace_back(std::make_unique<TcpClient>(i + 1, m_tcpServerPort));
-    }
-
-    m_tlsClientList.clear();
-    m_tlsClientList.reserve(m_tlsClients);
-    for (int i = 0; i < m_tlsClients; ++i) {
-        m_tlsClientList.emplace_back(std::make_unique<TlsClient>(i + 1, m_tcpServerPort));
-    }
-    */
 }
 
 void Core::waitForShutdown() {

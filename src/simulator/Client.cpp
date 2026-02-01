@@ -83,7 +83,7 @@ void Client::loginPhase()
 
 void Client::lobbyPhase()
 {
-    auto pkt = buildEnterLobbyReq();
+    auto pkt = buildLobbyEntryReq();
 
     if (not m_tcpClient->send(pkt.data(), pkt.size())) {
         LOG_FATAL("LOBBY_ENTRY_REQ send failed");
@@ -153,7 +153,7 @@ std::vector<uint8_t> Client::buildLoginReq()
     return pkt;
 }
 
-std::vector<uint8_t> Client::buildEnterLobbyReq()
+std::vector<uint8_t> Client::buildLobbyEntryReq()
 {
     std::vector<uint8_t> pkt(16);
 

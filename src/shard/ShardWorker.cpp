@@ -81,11 +81,11 @@ void ShardWorker::onTick() {
         auto deltaMs =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - m_prevTickTime).count();
 
-        LOG_DEBUG("Shard idx:{}, handle tick (delta={}ms)", m_shardIdx, deltaMs);
+        // LOG_DEBUG("Shard idx:{}, handle tick (delta={}ms)", m_shardIdx, deltaMs);
     } 
     else 
     {
-        LOG_DEBUG("Shard idx:{}, handle tick (first)", m_shardIdx);
+        // LOG_DEBUG("Shard idx:{}, handle tick (first)", m_shardIdx);
         m_hasPrevTick = true;
     }
 

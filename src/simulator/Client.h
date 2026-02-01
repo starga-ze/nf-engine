@@ -36,7 +36,7 @@ private:
     void lobbyPhase();
 
     std::vector<uint8_t> buildLoginReq();
-    std::vector<uint8_t> buildEnterLobbyReq();
+    std::vector<uint8_t> buildLobbyEntryReq();
 
     std::unique_ptr<TcpClient> m_tcpClient;
     std::unique_ptr<UdpClient> m_udpClient;
