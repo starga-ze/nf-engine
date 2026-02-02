@@ -195,8 +195,6 @@ void UdpReactor::receivePackets()
         {
             std::vector<uint8_t> payload(m_rxBuffer.begin(), m_rxBuffer.begin() + bytes);
 
-            LOG_TRACE("recv bytes ={}", bytes);
-
             auto pkt = std::make_unique<Packet>(
                 m_sockFd,
                 Protocol::UDP,
