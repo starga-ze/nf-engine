@@ -7,6 +7,9 @@
 #include <atomic>
 #include <memory>
 #include <vector>
+#include <chrono>
+
+#include <spdlog/logger.h>
 
 enum class ProtocolType {
     TCP,
@@ -51,5 +54,10 @@ private:
     int m_tcpServerPort;
 
     uint64_t m_sessionId;
+
+    std::shared_ptr<spdlog::logger> m_logger;
+
+    std::atomic<uint64_t> m_sendCnt{0};
+    std::chrono::steady_clock::time_point m_ppsLastTs;
 };
 

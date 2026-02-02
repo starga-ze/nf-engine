@@ -8,11 +8,34 @@
 #include <iomanip>
 #include <cstdint>
 
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
+
 Client::Client(int id, int udpServerPort, int tcpServerPort)
     : m_id(id),
       m_udpServerPort(udpServerPort),
       m_tcpServerPort(tcpServerPort)
 {
+    try
+    {
+        m_logger = spdlog::basic_logger_mt(
+            "nf-client-" + std::to_string(id),
+            "/var/log/nf/nf-client.log"
+        );
+
+        m_logger->set_pattern(
+            "[%Y-%m-%d %H:%M:%S.%e][%l][client=%t] %v"
+        );
+        m_logger->set_level(spdlog::level::info);
+        m_logger->flush_on(spdlog::level::info);
+    }
+    catch (const spdlog::spdlog_ex& e)
+    {
+        // fallback: global logger
+        spdlog::error("Client logger init failed: {}", e.what());
+        m_logger = spdlog::default_logger();
+    }
+
     init();
 }
 
@@ -30,28 +53,69 @@ void Client::init()
 
 void Client::start()
 {
-    if (not m_tlsClient->connect())
+    // PPS timer init
+    m_ppsLastTs = std::chrono::steady_clock::now();
+    m_sendCnt.store(0);
+
+    // ── control plane ──────────────────────────
+    if (!m_tlsClient->connect())
     {
         LOG_FATAL("TLS connect failed");
         return;
     }
 
-    if (not m_tcpClient->connect())
+    if (!m_tcpClient->connect())
     {
         LOG_FATAL("TCP connect failed");
+        return;
+    }
+
+    if (!m_udpClient->open())
+    {
+        LOG_FATAL("UDP open failed");
         return;
     }
 
     loginPhase();
 
     m_running = true;
-    while(m_running)
+
+    while (m_running)
     {
         lobbyPhase();
         udpTestPhase();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // std::this_thread::sleep_for(std::chrono::microseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
+
+    /*
+    auto pkt = buildUdpTestPkt();
+
+    m_running = true;
+    while (m_running)
+    {
+        m_udpClient->send(pkt.data(), pkt.size());
+        m_sendCnt.fetch_add(1, std::memory_order_relaxed);
+
+        auto now = std::chrono::steady_clock::now();
+        auto diff = now - m_ppsLastTs;
+
+        if (diff >= std::chrono::seconds(1))
+        {
+            uint64_t cnt = m_sendCnt.exchange(0, std::memory_order_relaxed);
+            double sec = std::chrono::duration<double>(diff).count();
+            uint64_t pps = static_cast<uint64_t>(cnt / sec);
+
+            m_logger->info(
+                "UDP PPS client={} pps={} (cnt={}, interval={:.3f}s)",
+                m_id, pps, cnt, sec
+            );
+
+            m_ppsLastTs = now;
+        }
+
+        std::this_thread::sleep_for(std::chrono::microseconds(50));
+    }
+    */
 }
 
 void Client::loginPhase()
@@ -112,12 +176,6 @@ void Client::lobbyPhase()
 
 void Client::udpTestPhase()
 {
-    if (!m_udpClient->open())
-    {
-        LOG_FATAL("UDP open failed");
-        return;
-    }
-    
     auto pkt = buildUdpTestPkt();
 
     if (!m_udpClient->send(pkt.data(), pkt.size()))
