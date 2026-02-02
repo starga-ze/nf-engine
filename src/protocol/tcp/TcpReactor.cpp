@@ -85,7 +85,7 @@ void TcpReactor::start()
 
             if (ev & EPOLLOUT)
             {
-                flushQueueForFd(fd, 128);
+                flushTxQueueForFd(fd, 128);
             }
         }
     }
@@ -381,11 +381,11 @@ void TcpReactor::flushAllTxQueue(size_t budgetPkts)
         if (conn->txQueue().empty())
             continue;
 
-        used += flushQueueForFd(fd, budgetPkts - used);
+        used += flushTxQueueForFd(fd, budgetPkts - used);
     }
 }
 
-size_t TcpReactor::flushQueueForFd(int fd, size_t budgetPkts)
+size_t TcpReactor::flushTxQueueForFd(int fd, size_t budgetPkts)
 {
     auto it = m_conns.find(fd);
     if (it == m_conns.end())

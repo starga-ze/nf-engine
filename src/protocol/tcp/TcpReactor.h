@@ -45,7 +45,7 @@ private:
 
     void snapshotPendingTx();
     void flushAllTxQueue(size_t budget);
-    size_t flushQueueForFd(int fd, size_t budget);
+    size_t flushTxQueueForFd(int fd, size_t budget);
 
 
     TcpWorker* m_tcpWorker;
