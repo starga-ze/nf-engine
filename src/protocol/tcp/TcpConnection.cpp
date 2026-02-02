@@ -22,6 +22,11 @@ std::vector<uint8_t>& TcpConnection::rxBuffer()
     return m_rxBuffer;
 }
 
+std::deque<TxBuffer>& TcpConnection::pendingTxQueue()
+{
+    return m_pendingTxQueue;
+}
+
 std::deque<TxBuffer>& TcpConnection::txQueue()
 {
     return m_txQueue;

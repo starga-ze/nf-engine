@@ -61,6 +61,8 @@ void TcpReactor::start()
             if (fd == m_tcpEpoll->getWakeupFd()) 
             {
                 m_tcpEpoll->drainWakeup();
+                snapshotPendingTx();
+                flushAllTxQueue(256);
                 continue;
             }
 
@@ -83,7 +85,7 @@ void TcpReactor::start()
 
             if (ev & EPOLLOUT)
             {
-                flushTx(fd);
+                flushQueueForFd(fd, 128);
             }
         }
     }
@@ -327,54 +329,106 @@ void TcpReactor::handoverToTls(int fd)
 
 void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 {
-    if (!pkt)
-        return;
+    if (!pkt) return;
 
-    int fd = pkt->getFd();
-
-    auto it = m_conns.find(fd);
-    if (it == m_conns.end())
-        return;
+    const int fd = pkt->getFd();
 
     TxBuffer buf;
     buf.data = pkt->takePayload();
     buf.offset = 0;
 
-    it->second->txQueue().push_back(std::move(buf));
+    {
+        std::lock_guard<std::mutex> lock(m_connLock);
+        auto it = m_conns.find(fd);
+        if (it == m_conns.end())
+            return;
 
-    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+        it->second->pendingTxQueue().push_back(std::move(buf));
+    }
+
+    m_tcpEpoll->wakeup();
 }
 
-void TcpReactor::flushTx(int fd)
+void TcpReactor::snapshotPendingTx()
+{
+    std::lock_guard<std::mutex> lock(m_connLock);
+
+    for (auto& [fd, conn] : m_conns)
+    {
+        auto& pending = conn->pendingTxQueue();
+        if (pending.empty())
+            continue;
+
+        auto& q = conn->txQueue();
+
+        while (!pending.empty())
+        {
+            q.push_back(std::move(pending.front()));
+            pending.pop_front();
+        }
+
+        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+    }
+}
+
+void TcpReactor::flushAllTxQueue(size_t budgetPkts)
+{
+    size_t used = 0;
+
+    for (auto& [fd, conn] : m_conns)
+    {
+        if (used >= budgetPkts)
+            break;
+
+        if (conn->txQueue().empty())
+            continue;
+
+        used += flushQueueForFd(fd, budgetPkts - used);
+    }
+}
+
+size_t TcpReactor::flushQueueForFd(int fd, size_t budgetPkts)
 {
     auto it = m_conns.find(fd);
     if (it == m_conns.end())
-        return;
+        return 0;
 
     auto& q = it->second->txQueue();
+    size_t used = 0;
 
-    while (!q.empty()) {
+    while (used < budgetPkts && !q.empty())
+    {
         auto& buf = q.front();
 
-        const uint8_t* p = buf.data.data() + buf.offset;
-        size_t remain = buf.data.size() - buf.offset;
+        while (buf.offset < buf.data.size())
+        {
+            const uint8_t* p = buf.data.data() + buf.offset;
+            size_t remain = buf.data.size() - buf.offset;
 
-        ssize_t n = ::send(fd, p, remain, MSG_NOSIGNAL);
-        if (n < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                return;
+            ssize_t n = ::send(fd, p, remain, MSG_NOSIGNAL);
+            if (n < 0)
+            {
+                if (errno == EAGAIN || errno == EWOULDBLOCK)
+                {
+                    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+                    return used + 1;
+                }
 
-            closeConnection(fd);
-            return;
+                closeConnection(fd);
+                return used + 1;
+            }
+
+            buf.offset += static_cast<size_t>(n);
         }
 
-        buf.offset += static_cast<size_t>(n);
-        if (buf.offset < buf.data.size())
-            return;
-
         q.pop_front();
+        used++;
     }
 
-    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLRDHUP);
-}
+    if (q.empty())
+        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLRDHUP);
+    else
+        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
 
+    return used;
+}

@@ -47,7 +47,6 @@ void Client::start()
     m_running = true;
     while(m_running)
     {
-        LOG_TRACE("send tx packet");
         lobbyPhase();
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }

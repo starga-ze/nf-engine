@@ -29,7 +29,11 @@ void TcpServer::stop()
 
 void TcpServer::enqueueTx(std::unique_ptr<Packet> pkt)
 {
-    if (!m_tcpReactor) return;
+    if (not m_tcpReactor)
+    {
+        return;
+    }
+
     m_tcpReactor->enqueueTx(std::move(pkt));
 }
 

@@ -8,7 +8,7 @@
 #include "packet/Packet.h"
 
 #include <unordered_map>
-
+#include <mutex>
 
 class TlsServer;
 
@@ -35,8 +35,12 @@ private:
     void receive(int fd);
     bool isTlsClientHello(int fd);
     void handoverToTls(int fd);
-    void flushTx(int fd);
     void shutdown();
+
+    void snapshotPendingTx();
+    void flushAllTxQueue(size_t budget);
+    size_t flushQueueForFd(int fd, size_t budget);
+
 
     TcpWorker* m_tcpWorker;
     std::shared_ptr<TlsServer> m_tlsServer;
@@ -48,4 +52,6 @@ private:
     int m_listenFd;
     sockaddr_in m_serverAddr{};
     std::atomic<bool> m_running = false;
+
+    std::mutex m_connLock;
 };
