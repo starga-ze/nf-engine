@@ -26,3 +26,10 @@ void TcpServer::stop()
     m_tcpReactor->stop();
     m_tcpWorker->stop();
 }
+
+void TcpServer::enqueueTx(std::unique_ptr<Packet> pkt)
+{
+    if (!m_tcpReactor) return;
+    m_tcpReactor->enqueueTx(std::move(pkt));
+}
+

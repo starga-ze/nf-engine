@@ -1,23 +1,30 @@
 #pragma once
 
 #include <netinet/in.h>
+#include <vector>
+#include <deque>
+#include <memory>
+
+struct TxBuffer
+{
+    std::vector<uint8_t> data;
+    size_t offset{0};
+};
 
 class TcpConnection
 {
 public:
-    TcpConnection(int fd, const sockaddr_in& peer)
-        : m_fd(fd), m_peer(peer)
-    {}
-
+    TcpConnection(int fd, const sockaddr_in& peer);
     ~TcpConnection() = default;
 
-    int fd() const { return m_fd; }
-    const sockaddr_in& peer() const { return m_peer; }
-    std::vector<uint8_t>& rxBuffer() { return m_rxBuffer; }
-
+    int fd() const;
+    const sockaddr_in& peer() const;
+    std::vector<uint8_t>& rxBuffer();
+    std::deque<TxBuffer>& txQueue();
 
 private:
     std::vector<uint8_t> m_rxBuffer;
+    std::deque<TxBuffer> m_txQueue;
 
     int m_fd;
     sockaddr_in m_peer;

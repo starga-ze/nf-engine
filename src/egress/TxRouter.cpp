@@ -43,7 +43,7 @@ void TxRouter::handlePacket(uint64_t sessionId, Opcode opcode, std::vector<uint8
 
         case Protocol::TCP:
             if (m_tcpServer)
-                // m_tcpServer->enqueueTx(std::move(packet));
+                m_tcpServer->enqueueTx(std::move(packet));
             break;
 
         case Protocol::UDP:

@@ -91,7 +91,6 @@ void Client::lobbyPhase()
         return;
     }
 
-    /*
     uint8_t buf[1024];
     ssize_t n;
 
@@ -108,7 +107,6 @@ void Client::lobbyPhase()
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    */
 }
 
 void Client::stop()

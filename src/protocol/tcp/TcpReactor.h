@@ -5,6 +5,8 @@
 #include "protocol/tcp/TcpConnection.h"
 #include "protocol/tcp/TcpFraming.h"
 
+#include "packet/Packet.h"
+
 #include <unordered_map>
 
 
@@ -19,6 +21,8 @@ public:
     void start();
     void stop();
 
+    void enqueueTx(std::unique_ptr<Packet> pkt);
+
 private:
     bool init();
     bool create();
@@ -31,6 +35,8 @@ private:
     void receive(int fd);
     bool isTlsClientHello(int fd);
     void handoverToTls(int fd);
+    void flushTx(int fd);
+    void shutdown();
 
     TcpWorker* m_tcpWorker;
     std::shared_ptr<TlsServer> m_tlsServer;

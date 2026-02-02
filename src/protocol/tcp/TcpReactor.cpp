@@ -80,11 +80,15 @@ void TcpReactor::start()
             {
                 receive(fd);
             }
+
+            if (ev & EPOLLOUT)
+            {
+                flushTx(fd);
+            }
         }
     }
 
-    m_tcpEpoll->close();
-    close();
+    shutdown();
     return;
 }
 
@@ -92,6 +96,18 @@ void TcpReactor::stop()
 {
     m_running = false;
     m_tcpEpoll->wakeup();
+}
+
+void TcpReactor::shutdown()
+{
+    for(auto& [fd, conn] : m_conns)
+    {
+        ::close(fd);
+    }
+    m_conns.clear();
+
+    m_tcpEpoll->close();
+    close();
 }
 
 bool TcpReactor::init()
@@ -195,9 +211,12 @@ void TcpReactor::acceptConnection()
         int fd = ::accept(m_listenFd,
                           reinterpret_cast<sockaddr*>(&peer),
                           &len);
-        if (fd < 0) {
+        if (fd < 0) 
+        {
             if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
                 break;
+            }
             return;
         }
 
@@ -292,7 +311,8 @@ bool TcpReactor::isTlsClientHello(int fd)
 void TcpReactor::handoverToTls(int fd)
 {
     auto it = m_conns.find(fd);
-    if (it == m_conns.end()) {
+    if (it == m_conns.end()) 
+    {
         closeConnection(fd);
         return;
     }
@@ -303,5 +323,58 @@ void TcpReactor::handoverToTls(int fd)
     m_conns.erase(it);
 
     m_tlsServer->handleTlsConnection(fd, std::make_pair(m_serverAddr, peer));
+}
+
+void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
+{
+    if (!pkt)
+        return;
+
+    int fd = pkt->getFd();
+
+    auto it = m_conns.find(fd);
+    if (it == m_conns.end())
+        return;
+
+    TxBuffer buf;
+    buf.data = pkt->takePayload();
+    buf.offset = 0;
+
+    it->second->txQueue().push_back(std::move(buf));
+
+    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+}
+
+void TcpReactor::flushTx(int fd)
+{
+    auto it = m_conns.find(fd);
+    if (it == m_conns.end())
+        return;
+
+    auto& q = it->second->txQueue();
+
+    while (!q.empty()) {
+        auto& buf = q.front();
+
+        const uint8_t* p = buf.data.data() + buf.offset;
+        size_t remain = buf.data.size() - buf.offset;
+
+        ssize_t n = ::send(fd, p, remain, MSG_NOSIGNAL);
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                return;
+
+            closeConnection(fd);
+            return;
+        }
+
+        buf.offset += static_cast<size_t>(n);
+        if (buf.offset < buf.data.size())
+            return;
+
+        q.pop_front();
+    }
+
+    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLRDHUP);
 }
 

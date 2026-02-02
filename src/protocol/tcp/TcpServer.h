@@ -6,6 +6,7 @@
 
 #include <memory>
 
+class Packet;
 class TcpWorker;
 class TcpReactor;
 
@@ -19,6 +20,8 @@ public:
 
     void start();
     void stop();
+
+    void enqueueTx(std::unique_ptr<Packet> pkt);
 
 private:
     std::unique_ptr<TcpWorker> m_tcpWorker;
