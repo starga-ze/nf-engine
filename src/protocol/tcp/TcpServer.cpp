@@ -18,7 +18,7 @@ TcpServer::~TcpServer()
 void TcpServer::start()
 {
     m_tcpWorker->start();
-    m_tcpReactor->start(); // blocking
+    m_tcpReactor->start();
 }
 
 void TcpServer::stop()

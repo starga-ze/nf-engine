@@ -61,7 +61,15 @@ void ThreadManager::stopAll() {
 
     for (auto &tInfo: snapshot) {
         LOG_TRACE("Stopping thread '{}'", tInfo.name);
-        tInfo.stopFunc();
+        if (tInfo.stopFunc)
+        {
+            tInfo.stopFunc();
+        }
+        else
+        {
+            LOG_DEBUG("Stop func is not allocated, '{}'", tInfo.name);
+            continue;
+        }
     }
 
     auto self = std::this_thread::get_id();

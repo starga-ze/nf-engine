@@ -11,7 +11,7 @@ void SessionManager::start() {
     m_running.store(true, std::memory_order_release);
 
     while(m_running.load(std::memory_order_acquire)) {
-        dump();
+        //dump();
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 }
