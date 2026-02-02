@@ -47,8 +47,9 @@ void Client::start()
     m_running = true;
     while(m_running)
     {
+        LOG_TRACE("send tx packet");
         lobbyPhase();
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 }
 
@@ -90,6 +91,7 @@ void Client::lobbyPhase()
         return;
     }
 
+    /*
     uint8_t buf[1024];
     ssize_t n;
 
@@ -106,6 +108,7 @@ void Client::lobbyPhase()
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    */
 }
 
 void Client::stop()

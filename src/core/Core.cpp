@@ -147,11 +147,12 @@ void Core::initializeEgress() {
 }
 
 void Core::startThreads() {
-    /*
+    
     m_threadManager->addThread("tls_reactor",
                                std::bind(&TlsServer::start, m_tlsServer.get()),
                                std::bind(&TlsServer::stopReact, m_tlsServer.get()));
 
+    /*
     m_threadManager->addThread("udp_reactor",
                                std::bind(&UdpServer::start, m_udpServer.get()),
                                std::bind(&UdpServer::stopReact, m_udpServer.get()));
@@ -160,7 +161,6 @@ void Core::startThreads() {
                                std::bind(&TcpServer::start, m_tcpServer.get()),
                                std::bind(&TcpServer::stop, m_tcpServer.get()));
 
-    /*
     m_threadManager->addThread("shard_manager",
                                std::bind(&ShardManager::start, m_shardManager.get()),
                                std::bind(&ShardManager::stop, m_shardManager.get()));
@@ -168,15 +168,15 @@ void Core::startThreads() {
     m_threadManager->addThread("session_manager",
                                std::bind(&SessionManager::start, m_sessionManager.get()),
                                std::bind(&SessionManager::stop, m_sessionManager.get()));
-    */
-    /*
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+
     for (int i = 0; i < m_clients; ++i) {
         auto &client = m_clientList[i];
         m_threadManager->addThread("client_" + std::to_string(i + 1),
                 std::bind(&Client::start, client.get()),
                 std::bind(&Client::stop, client.get()));
     }
-    */
 }
 
 void Core::initializeClients() {
