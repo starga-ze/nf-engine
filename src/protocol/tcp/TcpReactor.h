@@ -53,6 +53,7 @@ private:
     std::unique_ptr<TcpEpoll> m_tcpEpoll;
 
     std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
+    std::vector<uint8_t> m_rxBuffer;
 
     int m_port;
     int m_listenFd;

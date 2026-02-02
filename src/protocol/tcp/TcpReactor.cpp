@@ -12,6 +12,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#define TCP_RECV_CHUNK_SIZE     (4096)
+#define TCP_MAX_EVENTS          (64)
+#define TCP_MAX_RX_BUFFER_SIZE  (256 * 1024);
 
 TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
@@ -43,7 +46,8 @@ void TcpReactor::start()
 
     m_running = true;
 
-    std::vector<epoll_event> events(64);
+    std::vector<epoll_event> events(TCP_MAX_EVENTS);
+    m_rxBuffer.resize(TCP_RECV_CHUNK_SIZE);
 
     while (m_running) 
     {
@@ -154,12 +158,10 @@ bool TcpReactor::create()
 bool TcpReactor::setSockOpt()
 {
     int opt = 1;
-    if (::setsockopt(m_listenFd, SOL_SOCKET,
-                     SO_REUSEADDR, &opt, sizeof(opt)) != 0) {
+    if (::setsockopt(m_listenFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) != 0) {
         LOG_ERROR("setsockopt(SO_REUSEADDR) failed fd={}", m_listenFd);
         return false;
     }
-
     return true;
 }
 
@@ -224,6 +226,9 @@ void TcpReactor::acceptConnection()
 
         setNonBlocking(fd);
 
+        int rcv = TCP_MAX_RX_BUFFER_SIZE;
+        ::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+
         auto conn = std::make_unique<TcpConnection>(fd, peer);
 
         m_conns.emplace(fd, std::move(conn));
@@ -254,11 +259,10 @@ void TcpReactor::receive(int fd)
     auto& rxBuffer = conn->rxBuffer();
 
     while (true) {
-        uint8_t tmp[4096];
-        ssize_t n = ::recv(fd, tmp, sizeof(tmp), 0);
+        ssize_t bytes = ::recv(fd, m_rxBuffer.data(), m_rxBuffer.size(), 0);
 
-        if (n > 0) {
-            rxBuffer.insert(rxBuffer.end(), tmp, tmp + n);
+        if (bytes > 0) {
+            rxBuffer.insert(rxBuffer.end(), m_rxBuffer.begin(), m_rxBuffer.begin() + bytes);
 
             while (true) {
                 std::vector<uint8_t> payload;
@@ -283,7 +287,7 @@ void TcpReactor::receive(int fd)
             }
         }
         else {
-            if (n == 0) 
+            if (bytes == 0) 
             {
                 closeConnection(fd);
                 return;

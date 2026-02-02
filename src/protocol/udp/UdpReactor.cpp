@@ -286,7 +286,6 @@ size_t UdpReactor::flushPending(size_t budgetItems)
 
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
-            // 못 보낸 건 우선순위 유지 위해 snapshot 앞쪽으로 복귀
             m_snapshotTx.push_front(std::move(pkt));
             if (m_udpEpoll) m_udpEpoll->wakeup();
             return used + 1;
@@ -302,7 +301,6 @@ size_t UdpReactor::flushPending(size_t budgetItems)
         used++;
     }
 
-    // budget 초과했는데 남아있으면 다음 wakeup에서 계속 flush
     if (!m_snapshotTx.empty())
     {
         if (m_udpEpoll) m_udpEpoll->wakeup();
