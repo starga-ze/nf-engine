@@ -45,6 +45,7 @@ void ShardWorker::processPacket() {
         }
 
         // ---- action handling ---- 
+        /*
         {
             std::queue <std::unique_ptr<Action>> snapshot;
             {
@@ -57,6 +58,13 @@ void ShardWorker::processPacket() {
                 snapshot.front()->handleAction(*m_shardContext);
                 snapshot.pop();
             }
+        }
+        */
+        while (not m_actionQueue.empty())
+        {
+            LOG_DEBUG("Shard idx:{}, handle action", m_shardIdx);
+            m_actionQueue.front()->handleAction(*m_shardContext);
+            m_actionQueue.pop();
         }
 
         // ---- tick handling ----

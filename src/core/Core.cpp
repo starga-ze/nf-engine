@@ -55,7 +55,7 @@ bool Core::initializeRuntime() {
 
     m_shardWorkerThread = 4;
 
-    m_clients = 100;
+    m_clients = 10;
     
     m_tcpServerWorkerThread = 3;
     m_udpServerWorkerThread = 3;
