@@ -48,6 +48,7 @@ void Client::start()
     while(m_running)
     {
         lobbyPhase();
+        udpTestPhase();
         std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
 }
@@ -108,6 +109,37 @@ void Client::lobbyPhase()
     }
 }
 
+void Client::udpTestPhase()
+{
+    if (!m_udpClient->open())
+    {
+        LOG_FATAL("UDP open failed");
+        return;
+    }
+    
+    auto pkt = buildUdpTestPkt();
+
+    if (!m_udpClient->send(pkt.data(), pkt.size()))
+    {
+        LOG_ERROR("UDP send failed");
+        return;
+    }
+
+    uint8_t buf[1024];
+    ssize_t n = m_udpClient->recv(buf, sizeof(buf), 1000); // 1s timeout
+
+    if (n > 0)
+    {
+        LOG_INFO("UDP recv ok len={}", n);
+        dumpHex(buf, n);
+    }
+    else
+    {
+        LOG_WARN("UDP recv failed");
+    }
+}
+
+
 void Client::stop()
 {
     m_running.store(false);
@@ -164,6 +196,23 @@ std::vector<uint8_t> Client::buildLobbyEntryReq()
 
     uint64_t sessionId = htobe64(m_sessionId);
     std::memcpy(pkt.data() + 4, &sessionId, sizeof(sessionId));
+
+    std::memset(pkt.data() + 12, 0, 4);
+
+    return pkt;
+}
+
+std::vector<uint8_t> Client::buildUdpTestPkt()
+{
+    std::vector<uint8_t> pkt(16);
+
+    pkt[0] = 0x01;        // version
+    pkt[1] = 0x90;        // UDP_TEST opcode
+    pkt[2] = 0x00;
+    pkt[3] = 0x00;        // body len = 4
+
+    uint64_t sid = htobe64(m_sessionId);
+    std::memcpy(pkt.data() + 4, &sid, sizeof(sid));
 
     std::memset(pkt.data() + 12, 0, 4);
 

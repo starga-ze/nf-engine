@@ -34,9 +34,11 @@ private:
 
     void loginPhase();
     void lobbyPhase();
+    void udpTestPhase();
 
     std::vector<uint8_t> buildLoginReq();
     std::vector<uint8_t> buildLobbyEntryReq();
+    std::vector<uint8_t> buildUdpTestPkt();
 
     std::unique_ptr<TcpClient> m_tcpClient;
     std::unique_ptr<UdpClient> m_udpClient;

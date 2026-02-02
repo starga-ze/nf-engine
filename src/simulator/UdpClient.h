@@ -1,28 +1,32 @@
 #pragma once
 
-#include <arpa/inet.h>
-#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <netinet/in.h>
 
-class UdpClient {
+class UdpClient
+{
 public:
     UdpClient(int id, int serverPort);
-
     ~UdpClient();
 
-    void start();
-
+    bool open();
+    bool send(const void* data, size_t len);
+    ssize_t recv(void* buffer, size_t len, int timeoutMs);
     void stop();
 
+    int getFd() const;
+
 private:
-    bool init();
-
     bool createSocket();
+    bool setupServerAddr();
+    bool setNonBlocking();
 
-    bool connectServer();
+private:
+    int m_id{0};
+    int m_serverPort{0};
 
-    int m_id;
-    int m_sock;
-    int m_serverPort;
-    struct sockaddr_in m_serverAddr;
-    std::atomic<bool> m_running;
+    int m_sock{-1};
+    sockaddr_in m_serverAddr{};
 };
+
