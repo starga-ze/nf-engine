@@ -2,6 +2,7 @@
 
 #include "protocol/tcp/TcpWorker.h"
 #include "protocol/tls/TlsServer.h"
+#include "packet/Packet.h"
 
 #include "util/Logger.h"
 
@@ -22,7 +23,7 @@ TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer
 
 TcpReactor::~TcpReactor()
 {
-
+    stop();
 }
 
 void TcpReactor::start()
@@ -34,6 +35,7 @@ void TcpReactor::start()
     
     if (not m_tcpEpoll->init())
     {
+        close();
         return;
     }
 
@@ -54,6 +56,7 @@ void TcpReactor::start()
         for (int i = 0; i < n; ++i) 
         {
             int fd = events[i].data.fd;
+            uint32_t ev = events[i].events;
 
             if (fd == m_tcpEpoll->getWakeupFd()) 
             {
@@ -63,7 +66,19 @@ void TcpReactor::start()
 
             if (fd == m_listenFd) 
             {
-                LOG_DEBUG("listen fd readable (accept next)");
+                acceptConnection();
+                continue;
+            }
+    
+            if(ev & (EPOLLERR | EPOLLHUP | EPOLLRDHUP))
+            {
+                closeConnection(fd);
+                continue;
+            }
+
+            if (ev & EPOLLIN)
+            {
+                receive(fd);
             }
         }
     }
@@ -76,6 +91,7 @@ void TcpReactor::start()
 void TcpReactor::stop()
 {
     m_running = false;
+    m_tcpEpoll->wakeup();
 }
 
 bool TcpReactor::init()
@@ -168,5 +184,124 @@ bool TcpReactor::setNonBlocking(int fd)
         return false;
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK) == 0;
+}
+
+void TcpReactor::acceptConnection()
+{
+    while (true) {
+        sockaddr_in peer{};
+        socklen_t len = sizeof(peer);
+
+        int fd = ::accept(m_listenFd,
+                          reinterpret_cast<sockaddr*>(&peer),
+                          &len);
+        if (fd < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+                break;
+            return;
+        }
+
+        setNonBlocking(fd);
+
+        auto conn = std::make_unique<TcpConnection>(fd, peer);
+
+        m_conns.emplace(fd, std::move(conn));
+        m_tcpEpoll->add(fd, EPOLLIN | EPOLLRDHUP);
+    }
+}
+
+void TcpReactor::closeConnection(int fd)
+{
+    m_tcpEpoll->del(fd);
+    ::close(fd);
+    m_conns.erase(fd);
+}
+
+void TcpReactor::receive(int fd)
+{
+    if (m_tlsServer and isTlsClientHello(fd))
+    {
+        handoverToTls(fd);
+        return;
+    }
+
+    auto it = m_conns.find(fd);
+    if (it == m_conns.end())
+        return;
+
+    auto& conn = it->second;
+    auto& rxBuffer = conn->rxBuffer();
+
+    while (true) {
+        uint8_t tmp[4096];
+        ssize_t n = ::recv(fd, tmp, sizeof(tmp), 0);
+
+        if (n > 0) {
+            rxBuffer.insert(rxBuffer.end(), tmp, tmp + n);
+
+            while (true) {
+                std::vector<uint8_t> payload;
+                uint16_t bodyLen = 0;
+
+                TcpFramingResult r = TcpFraming::tryExtractFrame(rxBuffer, payload, bodyLen);
+
+                if (r == TcpFramingResult::Ok) {
+                    auto pkt = std::make_unique<Packet>(fd, Protocol::TCP, std::move(payload), 
+                            conn->peer(), m_serverAddr);
+
+                    m_tcpWorker->enqueueRx(std::move(pkt));
+                    continue;
+                }
+
+                if (r == TcpFramingResult::NeedMoreData) {
+                    break; 
+                }
+
+                closeConnection(fd);
+                return;
+            }
+        }
+        else {
+            if (n == 0) 
+            {
+                closeConnection(fd);
+                return;
+            }
+
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                return;
+            }
+
+            closeConnection(fd);
+            return;
+        }
+    }
+}
+
+bool TcpReactor::isTlsClientHello(int fd)
+{
+    uint8_t buf[5];
+    ssize_t n = ::recv(fd, buf, sizeof(buf), MSG_PEEK);
+    if (n < 5)
+        return false;
+
+    return buf[0] == 0x16 && buf[1] == 0x03;
+}
+
+void TcpReactor::handoverToTls(int fd)
+{
+    auto it = m_conns.find(fd);
+    if (it == m_conns.end()) {
+        closeConnection(fd);
+        return;
+    }
+
+    sockaddr_in peer = it->second->peer();
+
+    m_tcpEpoll->del(fd);
+    m_conns.erase(it);
+
+    m_tlsServer->handleTlsConnection(fd, std::make_pair(m_serverAddr, peer));
 }
 

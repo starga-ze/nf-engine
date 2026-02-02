@@ -2,9 +2,13 @@
 
 #include "protocol/tcp/TcpWorker.h"
 #include "protocol/tcp/TcpEpoll.h"
+#include "protocol/tcp/TcpConnection.h"
+#include "protocol/tcp/TcpFraming.h"
+
+#include <unordered_map>
+
 
 class TlsServer;
-
 
 class TcpReactor
 {
@@ -22,10 +26,17 @@ private:
     bool bindAndListen();
     void close();
     bool setNonBlocking(int fd);
+    void acceptConnection();
+    void closeConnection(int fd);
+    void receive(int fd);
+    bool isTlsClientHello(int fd);
+    void handoverToTls(int fd);
 
     TcpWorker* m_tcpWorker;
     std::shared_ptr<TlsServer> m_tlsServer;
     std::unique_ptr<TcpEpoll> m_tcpEpoll;
+
+    std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
 
     int m_port;
     int m_listenFd;
