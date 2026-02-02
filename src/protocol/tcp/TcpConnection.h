@@ -20,14 +20,10 @@ public:
     int fd() const;
     const sockaddr_in& peer() const;
     std::vector<uint8_t>& rxBuffer();
-
-    std::deque<TxBuffer>& pendingTxQueue();
     std::deque<TxBuffer>& txQueue();
 
 private:
     std::vector<uint8_t> m_rxBuffer;
-
-    std::deque<TxBuffer> m_pendingTxQueue;
     std::deque<TxBuffer> m_txQueue;
 
     int m_fd;

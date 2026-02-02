@@ -331,19 +331,14 @@ void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 {
     if (!pkt) return;
 
-    const int fd = pkt->getFd();
-
-    TxBuffer buf;
-    buf.data = pkt->takePayload();
-    buf.offset = 0;
+    TxRequest req;
+    req.fd = pkt->getFd();
+    req.buf.data = pkt->takePayload();
+    req.buf.offset = 0;
 
     {
-        std::lock_guard<std::mutex> lock(m_connLock);
-        auto it = m_conns.find(fd);
-        if (it == m_conns.end())
-            return;
-
-        it->second->pendingTxQueue().push_back(std::move(buf));
+        std::lock_guard<std::mutex> lock(m_pendingTxLock);
+        m_pendingTx.push_back(std::move(req));
     }
 
     m_tcpEpoll->wakeup();
@@ -351,25 +346,28 @@ void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 
 void TcpReactor::snapshotPendingTx()
 {
-    std::lock_guard<std::mutex> lock(m_connLock);
-
-    for (auto& [fd, conn] : m_conns)
+    std::deque<TxRequest> local;
     {
-        auto& pending = conn->pendingTxQueue();
-        if (pending.empty())
-            continue;
+        std::lock_guard<std::mutex> lock(m_pendingTxLock);
+        local.swap(m_pendingTx);
+    }
 
-        auto& q = conn->txQueue();
-
-        while (!pending.empty())
+    for (auto& req : local)
+    {
+        auto it = m_conns.find(req.fd);
+        if (it == m_conns.end())
         {
-            q.push_back(std::move(pending.front()));
-            pending.pop_front();
+            continue;
         }
 
-        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+        auto& conn = it->second;
+
+        conn->txQueue().push_back(std::move(req.buf));
+
+        m_tcpEpoll->mod(req.fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
     }
 }
+
 
 void TcpReactor::flushAllTxQueue(size_t budgetPkts)
 {

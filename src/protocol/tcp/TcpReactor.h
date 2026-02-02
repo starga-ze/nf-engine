@@ -12,6 +12,12 @@
 
 class TlsServer;
 
+struct TxRequest
+{
+    int fd;
+    TxBuffer buf;
+};
+
 class TcpReactor
 {
 public:
@@ -53,5 +59,6 @@ private:
     sockaddr_in m_serverAddr{};
     std::atomic<bool> m_running = false;
 
-    std::mutex m_connLock;
+    std::mutex m_pendingTxLock;
+    std::deque<TxRequest> m_pendingTx;
 };
