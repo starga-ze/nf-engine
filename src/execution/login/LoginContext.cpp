@@ -49,7 +49,7 @@ void LoginContext::loginReqEvent(const LoginReqEvent& ev) {
     }
 
     if (!action) {
-        LOG_ERROR("Action creation failed. [session={}]", sessionId);
+        LOG_ERROR("Action create failed, [session={}]", sessionId);
         return;
     }
 

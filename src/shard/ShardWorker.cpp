@@ -127,7 +127,7 @@ void ShardWorker::enqueueAction(std::unique_ptr <Action> action) {
         return;
     }
     
-    /* Single-Thread Queue (shard worker -> shard worker)
+    /* Single-Thread SPSC Queue (shard worker -> shard worker)
      * Action MUST be created and enqueued only from the shard-worker thread.
      * If an action needs to originate from another thread, enqueue Event instead.
      */

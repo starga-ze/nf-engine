@@ -6,7 +6,6 @@
 
 std::unique_ptr<Event> LobbyParser::deserialize(ParsedPacket& parsed)
 {
-
     switch(parsed.opcode())
     {
         case Opcode::LOBBY_ENTRY_REQ:

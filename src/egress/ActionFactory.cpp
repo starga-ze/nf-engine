@@ -3,6 +3,7 @@
 
 #include "execution/login/LoginAction.h"
 #include "execution/lobby/LobbyAction.h"
+#include "execution/ping/PingAction.h"
 
 std::unique_ptr <Action> ActionFactory::create(Opcode opcode, uint64_t sessionId) {
 

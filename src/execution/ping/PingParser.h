@@ -3,14 +3,14 @@
 
 #include <memory>
 
-class LobbyParser
+class PingParser
 {
 public:
-    LobbyParser() = default;
-    ~LobbyParser() = default;
+    PingParser() = default;
+    ~PingParser() = default;
 
     static std::unique_ptr<Event> deserialize(ParsedPacket& parsed);
 
 private:
-    static std::unique_ptr<Event> parseLobbyEntryReq(ParsedPacket& parsed);
+    static std::unique_ptr<Event> parsePingReq(ParsedPacket& parsed);
 };

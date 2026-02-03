@@ -5,7 +5,7 @@
 #include "execution/login/LoginContext.h"
 #include "execution/lobby/LobbyContext.h"
 #include "execution/market/MarketContext.h"
-
+#include "execution/ping/PingContext.h"
 
 ShardContext::ShardContext(int shardIdx, uint8_t marketId, 
         ShardManager *shardManager, DbManager *dbManager) : 
@@ -17,6 +17,7 @@ ShardContext::ShardContext(int shardIdx, uint8_t marketId,
     m_loginContext = std::make_unique<LoginContext>(shardIdx, shardManager, dbManager);
     m_lobbyContext = std::make_unique<LobbyContext>(shardIdx, shardManager);
     m_marketContext = std::make_unique<MarketContext>(shardIdx, marketId);
+    m_pingContext = std::make_unique<PingContext>(shardIdx, shardManager);
 }
 
 ShardContext::~ShardContext() {
@@ -25,6 +26,7 @@ ShardContext::~ShardContext() {
 void ShardContext::setTxRouter(TxRouter *txRouter) {
     m_loginContext->setTxRouter(txRouter);
     m_lobbyContext->setTxRouter(txRouter);
+    m_pingContext->setTxRouter(txRouter);
 }
 
 ShardManager& ShardContext::shardManager() {
@@ -41,4 +43,9 @@ LobbyContext& ShardContext::lobbyContext() {
 
 MarketContext& ShardContext::marketContext() {
     return *m_marketContext;
+}
+
+PingContext& ShardContext::pingContext() 
+{
+    return *m_pingContext;
 }

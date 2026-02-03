@@ -17,8 +17,8 @@ std::unique_ptr <Packet> PacketBuilder::build(std::vector<uint8_t> payload, cons
     const ConnInfo& ci = snap.connInfo;
 
     // 논리적 src / dst addr 구성 (TCP/TLS/UDP 공통)
-    sockaddr_in srcAddr = createSockAddr(ci.srcIp, ci.srcPort);
-    sockaddr_in dstAddr = createSockAddr(ci.dstIp, ci.dstPort);
+    sockaddr_in srcAddr = createSockAddr(ci.dstIp, ci.dstPort);
+    sockaddr_in dstAddr = createSockAddr(ci.srcIp, ci.srcPort);
 
     switch (snap.protocol) {
 

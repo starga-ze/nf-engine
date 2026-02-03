@@ -105,6 +105,10 @@ bool SessionManager::getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxS
             out.protocol = Protocol::TCP;
             break;
 
+        case Opcode::PING_RES:
+            out.protocol = Protocol::UDP;
+            break;
+
         default:
             out.protocol = Protocol::UNKNOWN;
             return false;

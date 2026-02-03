@@ -37,11 +37,11 @@ private:
 
     void loginPhase();
     void lobbyPhase();
-    void udpTestPhase();
+    void pingPhase();
 
     std::vector<uint8_t> buildLoginReq();
     std::vector<uint8_t> buildLobbyEntryReq();
-    std::vector<uint8_t> buildUdpTestPkt();
+    std::vector<uint8_t> buildPingReq();
 
     std::unique_ptr<TcpClient> m_tcpClient;
     std::unique_ptr<UdpClient> m_udpClient;
@@ -57,7 +57,8 @@ private:
 
     std::shared_ptr<spdlog::logger> m_logger;
 
-    std::atomic<uint64_t> m_sendCnt{0};
-    std::chrono::steady_clock::time_point m_ppsLastTs;
+    std::chrono::steady_clock::time_point m_lastPingTs;
+    std::atomic<uint64_t> m_pingSeq{0};
+
 };
 

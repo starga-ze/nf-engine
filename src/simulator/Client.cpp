@@ -53,11 +53,6 @@ void Client::init()
 
 void Client::start()
 {
-    // PPS timer init
-    m_ppsLastTs = std::chrono::steady_clock::now();
-    m_sendCnt.store(0);
-
-    // ── control plane ──────────────────────────
     if (!m_tlsClient->connect())
     {
         LOG_FATAL("TLS connect failed");
@@ -82,40 +77,10 @@ void Client::start()
 
     while (m_running)
     {
+        pingPhase();
         lobbyPhase();
-        udpTestPhase();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(3000));
     }
-
-    /*
-    auto pkt = buildUdpTestPkt();
-
-    m_running = true;
-    while (m_running)
-    {
-        m_udpClient->send(pkt.data(), pkt.size());
-        m_sendCnt.fetch_add(1, std::memory_order_relaxed);
-
-        auto now = std::chrono::steady_clock::now();
-        auto diff = now - m_ppsLastTs;
-
-        if (diff >= std::chrono::seconds(1))
-        {
-            uint64_t cnt = m_sendCnt.exchange(0, std::memory_order_relaxed);
-            double sec = std::chrono::duration<double>(diff).count();
-            uint64_t pps = static_cast<uint64_t>(cnt / sec);
-
-            m_logger->info(
-                "UDP PPS client={} pps={} (cnt={}, interval={:.3f}s)",
-                m_id, pps, cnt, sec
-            );
-
-            m_ppsLastTs = now;
-        }
-
-        std::this_thread::sleep_for(std::chrono::microseconds(50));
-    }
-    */
 }
 
 void Client::loginPhase()
@@ -174,28 +139,35 @@ void Client::lobbyPhase()
     }
 }
 
-void Client::udpTestPhase()
+void Client::pingPhase()
 {
-    auto pkt = buildUdpTestPkt();
+    constexpr auto PING_INTERVAL = std::chrono::milliseconds(5000);
 
-    if (!m_udpClient->send(pkt.data(), pkt.size()))
+    auto now = std::chrono::steady_clock::now();
+
+    if (now - m_lastPingTs < PING_INTERVAL)
     {
-        LOG_ERROR("UDP send failed");
         return;
     }
 
-    uint8_t buf[1024];
-    ssize_t n = m_udpClient->recv(buf, sizeof(buf), 1000); // 1s timeout
+    m_lastPingTs = now;
 
-    if (n > 0)
+    auto pkt = buildPingReq();
+
+    if (!m_udpClient->send(pkt.data(), pkt.size()))
     {
-        LOG_INFO("UDP recv ok len={}", n);
-        dumpHex(buf, n);
+        LOG_ERROR("UDP ping send failed");
+        return;
     }
-    else
+    m_logger->info("client send ping");
+
+    uint8_t buf[1024];
+
+    if (!m_udpClient->recv(buf, sizeof(buf), 1000))
     {
-        LOG_WARN("UDP recv failed");
+        LOG_ERROR("UDP ping recv failed");
     }
+    m_logger->info("client recv ping");
 }
 
 
@@ -261,22 +233,39 @@ std::vector<uint8_t> Client::buildLobbyEntryReq()
     return pkt;
 }
 
-std::vector<uint8_t> Client::buildUdpTestPkt()
+std::vector<uint8_t> Client::buildPingReq()
 {
-    std::vector<uint8_t> pkt(16);
+    constexpr uint16_t BODY_LEN = 16;
 
-    pkt[0] = 0x01;        // version
-    pkt[1] = 0x90;        // UDP_TEST opcode
-    pkt[2] = 0x00;
-    pkt[3] = 0x00;        // body len = 4
+    std::vector<uint8_t> pkt(16 + BODY_LEN);
+
+    pkt[0] = 0x01;
+    pkt[1] = 0x90;
+    pkt[2] = (BODY_LEN >> 8) & 0xFF;
+    pkt[3] = BODY_LEN & 0xFF;
 
     uint64_t sid = htobe64(m_sessionId);
-    std::memcpy(pkt.data() + 4, &sid, sizeof(sid));
-
+    std::memcpy(pkt.data() + 4, &sid, 8);
     std::memset(pkt.data() + 12, 0, 4);
+
+    size_t off = 16;
+
+    uint64_t nonce = ++m_pingSeq;
+    uint64_t nonce_be = htobe64(nonce);
+    std::memcpy(pkt.data() + off, &nonce_be, 8);
+    off += 8;
+
+    uint64_t ts =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::steady_clock::now().time_since_epoch()
+        ).count();
+
+    uint64_t ts_be = htobe64(ts);
+    std::memcpy(pkt.data() + off, &ts_be, 8);
 
     return pkt;
 }
+
 
 void Client::dumpHex(const uint8_t* buf, size_t len)
 {
