@@ -142,34 +142,60 @@ void Client::lobbyPhase()
 void Client::pingPhase()
 {
     constexpr auto PING_INTERVAL = std::chrono::milliseconds(5000);
-
     auto now = std::chrono::steady_clock::now();
 
-    if (now - m_lastPingTs < PING_INTERVAL)
-    {
-        return;
-    }
-
+    if (now - m_lastPingTs < PING_INTERVAL) return;
     m_lastPingTs = now;
 
     auto pkt = buildPingReq();
-
-    if (!m_udpClient->send(pkt.data(), pkt.size()))
-    {
+    if (!m_udpClient->send(pkt.data(), pkt.size())) {
         LOG_ERROR("UDP ping send failed");
         return;
     }
-    m_logger->info("client send ping");
 
     uint8_t buf[1024];
-
-    if (!m_udpClient->recv(buf, sizeof(buf), 1000))
-    {
-        LOG_ERROR("UDP ping recv failed");
+    // 1. 받은 길이를 반드시 저장
+    int received = m_udpClient->recv(buf, sizeof(buf), 1000);
+    
+    // 2. 최소 길이 검증 (헤더 16 + 바디 최소 24바이트 가정)
+    if (received < 40) { 
+        LOG_ERROR("UDP ping recv failed or packet too short: {} bytes", received);
+        return;
     }
-    m_logger->info("client recv ping");
-}
 
+    // 3. 파싱 시 구조체 또는 오프셋 상수화
+    const uint8_t* body = buf + 16;
+    size_t off = 0;
+
+    uint64_t nonce_be;
+    std::memcpy(&nonce_be, body + off, 8);
+    uint64_t nonce = be64toh(nonce_be);
+    off += 8;
+
+    uint64_t clientTs_be;
+    std::memcpy(&clientTs_be, body + off, 8);
+    uint64_t clientTs = be64toh(clientTs_be);
+    off += 8;
+
+    uint64_t serverTs_be;
+    std::memcpy(&serverTs_be, body + off, 8);
+    uint64_t serverTs = be64toh(serverTs_be);
+
+    // 4. RTT 계산 (정밀도 유지)
+    uint64_t nowNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                         std::chrono::steady_clock::now().time_since_epoch())
+                         .count();
+
+    if (nowNs < clientTs) {
+        LOG_WARN("Clock skew detected (now < clientTs)");
+        return;
+    }
+
+    double rttMs = static_cast<double>(nowNs - clientTs) / 1'000'000.0;
+    double serverRttMs = static_cast<double>(serverTs - clientTs) / 1'000'000.0;
+
+    m_logger->info("PING: seq={}, RTT={:.3f} ms (ServerTs - ClientTs: {:.3f} ms)", nonce, rttMs, serverRttMs);
+}
 
 void Client::stop()
 {

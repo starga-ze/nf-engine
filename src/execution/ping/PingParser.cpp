@@ -46,7 +46,7 @@ std::unique_ptr<Event> PingParser::parsePingReq(ParsedPacket& parsed)
 
     uint64_t clientTs;
     std::memcpy(&clientTs, buf + offset, sizeof(uint64_t));
-    clientTs += be64toh(clientTs);
+    clientTs = be64toh(clientTs);
 
     return std::make_unique<PingReqEvent>(parsed.getSessionId(), std::move(payload), nonce, clientTs);
 }
