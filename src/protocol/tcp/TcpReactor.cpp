@@ -47,7 +47,6 @@ void TcpReactor::start()
     m_running = true;
 
     std::vector<epoll_event> events(TCP_MAX_EVENTS);
-    m_rxBuffer.resize(TCP_RECV_CHUNK_SIZE);
 
     while (m_running) 
     {
@@ -226,10 +225,10 @@ void TcpReactor::acceptConnection()
 
         setNonBlocking(fd);
 
-        int rcv = TCP_MAX_RX_BUFFER_SIZE;
+        size_t rcv = TCP_MAX_RX_BUFFER_SIZE;
         ::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
 
-        auto conn = std::make_unique<TcpConnection>(fd, peer);
+        auto conn = std::make_unique<TcpConnection>(fd, peer, rcv);
 
         m_conns.emplace(fd, std::move(conn));
         m_tcpEpoll->add(fd, EPOLLIN | EPOLLRDHUP);
@@ -256,43 +255,66 @@ void TcpReactor::receive(int fd)
         return;
 
     auto& conn = it->second;
-    auto& rxBuffer = conn->rxBuffer();
+    RingBuffer& rxRing = conn->rxRing();
 
     while (true) {
-        ssize_t bytes = ::recv(fd, m_rxBuffer.data(), m_rxBuffer.size(), 0);
+        uint8_t* writePtr = rxRing.writePtr();
+        size_t writeLen = rxRing.writeLen();
 
-        if (bytes > 0) {
-            rxBuffer.insert(rxBuffer.end(), m_rxBuffer.begin(), m_rxBuffer.begin() + bytes);
+        if (writeLen == 0)
+        {
+            LOG_WARN("TCP Rx Ring is full, may cause backpressure");
+            closeConnection(fd);
+            return;
+        }
+    
+        ssize_t wBytes = ::recv(fd, writePtr, writeLen, 0);
+
+        if (wBytes > 0) {
+            rxRing.produce(static_cast<size_t>(wBytes));
 
             while (true) {
-                std::vector<uint8_t> payload;
-                uint16_t bodyLen = 0;
+                size_t frameLen = 0;
 
-                TcpFramingResult r = TcpFraming::tryExtractFrame(rxBuffer, payload, bodyLen);
+                TcpFramingResult r = TcpFraming::tryExtractFrame(rxRing, frameLen);
 
-                if (r == TcpFramingResult::Ok) {
-                    auto pkt = std::make_unique<Packet>(fd, Protocol::TCP, std::move(payload), 
-                            conn->peer(), m_serverAddr);
-
-                    m_tcpWorker->enqueueRx(std::move(pkt));
-                    continue;
-                }
-
-                if (r == TcpFramingResult::NeedMoreData) {
+                if (r == TcpFramingResult::NeedMoreData) 
+                {
                     break; 
                 }
+                if (r != TcpFramingResult::Ok)
+                {
+                    closeConnection(fd);
+                    return;
+                }
 
-                closeConnection(fd);
-                return;
+                std::vector<uint8_t> payload(frameLen);
+                size_t rBytes = rxRing.read(payload.data(), frameLen);
+
+                if (rBytes != frameLen)
+                {
+                    LOG_FATAL("Tcp RxRing Read Error, invariant violation");
+                    closeConnection(fd);
+                    return;
+                }
+                auto pkt = std::make_unique<Packet>(fd, Protocol::TCP, std::move(payload), 
+                        conn->peer(), m_serverAddr);
+
+                m_tcpWorker->enqueueRx(std::move(pkt));
             }
+            continue;
         }
         else {
-            if (bytes == 0) 
+            if (wBytes == 0) 
             {
                 closeConnection(fd);
                 return;
             }
 
+            if (errno == EINTR)
+            {
+                continue;
+            }
             if (errno == EAGAIN || errno == EWOULDBLOCK)
             {
                 return;

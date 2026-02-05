@@ -2,9 +2,14 @@
 #include "execution/ping/PingContext.h"
 #include "execution/ping/PingBuilder.h"
 
+PingAction::PingAction(uint64_t sessionId, Opcode opcode) :
+    Action(sessionId, opcode)
+{
+
+}
+
 PingResAction::PingResAction(uint64_t sessionId, Opcode opcode, uint64_t nonce, uint64_t clientTs) :
-    m_sessionId(sessionId),
-    m_opcode(opcode),
+    PingAction(sessionId, opcode),
     m_nonce(nonce),
     m_clientTs(clientTs)
 {
@@ -13,6 +18,6 @@ PingResAction::PingResAction(uint64_t sessionId, Opcode opcode, uint64_t nonce, 
 
 void PingResAction::handleAction(ShardContext& shardContext)
 {
-    m_payload = PingBuilder::serialize(m_opcode, m_sessionId, m_nonce, m_clientTs);
+    m_payload = PingBuilder::serialize(opcode(), sessionId(), m_nonce, m_clientTs);
     shardContext.pingContext().pingResAction(*this);
 }

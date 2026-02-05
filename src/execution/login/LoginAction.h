@@ -5,15 +5,15 @@
 
 #include <cstdint>
 
-class LoginAction : public Action {
-public:
-    LoginAction() = default;
-    virtual ~LoginAction() = default;
-
+class LoginAction : public Action 
+{
+protected:
+    LoginAction(uint64_t sessionId, Opcode opcode);
 };
 
 
-class LoginSuccessResAction final : public LoginAction {
+class LoginSuccessResAction final : public LoginAction 
+{
 public:
     LoginSuccessResAction(uint64_t sessionId, Opcode opcode);
 
@@ -21,18 +21,13 @@ public:
 
     const std::vector<uint8_t> takePayload() { return std::move(m_payload); }
 
-    uint64_t sessionId() const { return m_sessionId; }
-
-    Opcode opcode() const { return m_opcode; }
-
 private:
-    Opcode m_opcode;
-    uint64_t m_sessionId;
     std::vector<uint8_t> m_payload;
 };
 
 
-class LoginFailResAction final : public LoginAction {
+class LoginFailResAction final : public LoginAction 
+{
 public:
     LoginFailResAction(uint64_t sessionId, Opcode opcode);
 
@@ -40,13 +35,7 @@ public:
 
     const std::vector<uint8_t> takePayload() { return std::move(m_payload); }
 
-    uint64_t sessionId() const { return m_sessionId; }
-
-    Opcode opcode() const { return m_opcode; }
-
 private:
-    Opcode m_opcode;
-    uint64_t m_sessionId;
     std::vector<uint8_t> m_payload;
 };
 

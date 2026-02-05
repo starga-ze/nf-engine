@@ -1,5 +1,7 @@
 #pragma once
 
+#include "algorithm/RingBuffer.h"
+
 #include <netinet/in.h>
 #include <vector>
 #include <deque>
@@ -14,18 +16,19 @@ struct TxBuffer
 class TcpConnection
 {
 public:
-    TcpConnection(int fd, const sockaddr_in& peer);
+    TcpConnection(int fd, const sockaddr_in& peer, size_t rxMaxBufferSize);
     ~TcpConnection() = default;
 
     int fd() const;
     const sockaddr_in& peer() const;
-    std::vector<uint8_t>& rxBuffer();
     std::deque<TxBuffer>& txQueue();
+    RingBuffer& rxRing() { return m_rxRing; }
 
 private:
-    std::vector<uint8_t> m_rxBuffer;
-    std::deque<TxBuffer> m_txQueue;
+    RingBuffer m_rxRing;
 
+    std::deque<TxBuffer> m_txQueue;
+    
     int m_fd;
     sockaddr_in m_peer;
 };

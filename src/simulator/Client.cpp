@@ -31,7 +31,6 @@ Client::Client(int id, int udpServerPort, int tcpServerPort)
     }
     catch (const spdlog::spdlog_ex& e)
     {
-        // fallback: global logger
         spdlog::error("Client logger init failed: {}", e.what());
         m_logger = spdlog::default_logger();
     }
@@ -154,16 +153,13 @@ void Client::pingPhase()
     }
 
     uint8_t buf[1024];
-    // 1. 받은 길이를 반드시 저장
     int received = m_udpClient->recv(buf, sizeof(buf), 1000);
     
-    // 2. 최소 길이 검증 (헤더 16 + 바디 최소 24바이트 가정)
     if (received < 40) { 
         LOG_ERROR("UDP ping recv failed or packet too short: {} bytes", received);
         return;
     }
 
-    // 3. 파싱 시 구조체 또는 오프셋 상수화
     const uint8_t* body = buf + 16;
     size_t off = 0;
 
@@ -181,7 +177,6 @@ void Client::pingPhase()
     std::memcpy(&serverTs_be, body + off, 8);
     uint64_t serverTs = be64toh(serverTs_be);
 
-    // 4. RTT 계산 (정밀도 유지)
     uint64_t nowNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
                          std::chrono::steady_clock::now().time_since_epoch())
                          .count();

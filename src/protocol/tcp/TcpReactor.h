@@ -5,6 +5,8 @@
 #include "protocol/tcp/TcpConnection.h"
 #include "protocol/tcp/TcpFraming.h"
 
+#include "algorithm/RingBuffer.h"
+
 #include "packet/Packet.h"
 
 #include <unordered_map>
@@ -47,13 +49,11 @@ private:
     void flushAllTxQueue(size_t budget);
     size_t flushTxQueueForFd(int fd, size_t budget);
 
-
     TcpWorker* m_tcpWorker;
     std::shared_ptr<TlsServer> m_tlsServer;
     std::unique_ptr<TcpEpoll> m_tcpEpoll;
 
     std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
-    std::vector<uint8_t> m_rxBuffer;
 
     int m_port;
     int m_listenFd;

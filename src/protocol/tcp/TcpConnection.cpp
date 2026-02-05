@@ -1,8 +1,9 @@
 #include "protocol/tcp/TcpConnection.h"
 
-TcpConnection::TcpConnection(int fd, const sockaddr_in& peer) :
+TcpConnection::TcpConnection(int fd, const sockaddr_in& peer, size_t rxMaxBufferSize) :
     m_fd(fd),
-    m_peer(peer)
+    m_peer(peer),
+    m_rxRing(rxMaxBufferSize)
 {
 
 }
@@ -15,11 +16,6 @@ int TcpConnection::fd() const
 const sockaddr_in& TcpConnection::peer() const
 {
     return m_peer;
-}
-
-std::vector<uint8_t>& TcpConnection::rxBuffer()
-{
-    return m_rxBuffer;
 }
 
 std::deque<TxBuffer>& TcpConnection::txQueue()
