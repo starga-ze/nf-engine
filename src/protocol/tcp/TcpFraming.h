@@ -1,6 +1,6 @@
 #pragma once
 
-#include "algorithm/RingBuffer.h"
+#include "algorithm/ByteRingBuffer.h"
 
 #include <vector>
 #include <cstdint>
@@ -15,5 +15,5 @@ enum class TcpFramingResult
 class TcpFraming
 {
 public:
-    static TcpFramingResult tryExtractFrame(const RingBuffer& rxRing, size_t& outFrameLen);
+    static TcpFramingResult tryExtractFrame(const ByteRingBuffer& rxRing, size_t& outFrameLen);
 };

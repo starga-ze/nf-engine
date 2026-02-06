@@ -255,7 +255,7 @@ void TcpReactor::receive(int fd)
         return;
 
     auto& conn = it->second;
-    RingBuffer& rxRing = conn->rxRing();
+    ByteRingBuffer& rxRing = conn->rxRing();
 
     while (true) {
         uint8_t* writePtr = rxRing.writePtr();

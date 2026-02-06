@@ -8,7 +8,7 @@
 #define TCP_MAX_BODY_LEN  (64 * 1024)
 
 TcpFramingResult
-TcpFraming::tryExtractFrame(const RingBuffer& rxRing, size_t& outFrameLen)
+TcpFraming::tryExtractFrame(const ByteRingBuffer& rxRing, size_t& outFrameLen)
 {
     if (rxRing.readable() < TCP_HEADER_SIZE)
     {
