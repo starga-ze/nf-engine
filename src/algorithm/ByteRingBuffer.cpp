@@ -1,23 +1,23 @@
-#include "algorithm/RingBuffer.h"
+#include "algorithm/ByteRingBuffer.h"
 #include <algorithm>
 #include <cstring>
 
-RingBuffer::RingBuffer(size_t capacity)
+ByteRingBuffer::ByteRingBuffer(size_t capacity)
     : m_buffer(capacity)
 {
 }
 
-size_t RingBuffer::readable() const
+size_t ByteRingBuffer::readable() const
 {
     return m_size;
 }
 
-size_t RingBuffer::writable() const
+size_t ByteRingBuffer::writable() const
 {
     return m_buffer.size() - m_size;
 }
 
-uint8_t* RingBuffer::writePtr()
+uint8_t* ByteRingBuffer::writePtr()
 {
     if (writable() == 0)
         return nullptr;
@@ -25,7 +25,7 @@ uint8_t* RingBuffer::writePtr()
     return m_buffer.data() + m_tail;
 }
 
-size_t RingBuffer::writeLen() const
+size_t ByteRingBuffer::writeLen() const
 {
     if (writable() == 0)
         return 0;
@@ -34,13 +34,13 @@ size_t RingBuffer::writeLen() const
     return std::min(toEnd, writable());
 }
 
-void RingBuffer::produce(size_t n)
+void ByteRingBuffer::produce(size_t n)
 {
     m_tail = (m_tail + n) % m_buffer.size();
     m_size += n;
 }
 
-size_t RingBuffer::write(const uint8_t* data, size_t len)
+size_t ByteRingBuffer::write(const uint8_t* data, size_t len)
 {
     size_t written = 0;
     while (written < len && writable() > 0) 
@@ -53,7 +53,7 @@ size_t RingBuffer::write(const uint8_t* data, size_t len)
     return written;
 }
 
-const uint8_t* RingBuffer::readPtr() const
+const uint8_t* ByteRingBuffer::readPtr() const
 {
     if (readable() == 0)
         return nullptr;
@@ -61,7 +61,7 @@ const uint8_t* RingBuffer::readPtr() const
     return m_buffer.data() + m_head;
 }
 
-size_t RingBuffer::readLen() const
+size_t ByteRingBuffer::readLen() const
 {
     if (readable() == 0)
         return 0;
@@ -70,13 +70,13 @@ size_t RingBuffer::readLen() const
     return std::min(toEnd, readable());
 }
 
-void RingBuffer::consume(size_t n)
+void ByteRingBuffer::consume(size_t n)
 {
     m_head = (m_head + n) % m_buffer.size();
     m_size -= n;
 }
 
-size_t RingBuffer::read(uint8_t* out, size_t len)
+size_t ByteRingBuffer::read(uint8_t* out, size_t len)
 {
     size_t readBytes = 0;
     while (readBytes < len && readable() > 0) 
@@ -89,7 +89,7 @@ size_t RingBuffer::read(uint8_t* out, size_t len)
     return readBytes;
 }
 
-void RingBuffer::clear()
+void ByteRingBuffer::clear()
 {
     m_head = 0;
     m_tail = 0;

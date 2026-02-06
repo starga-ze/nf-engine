@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <vector>
 
-class RingBuffer
+class ByteRingBuffer
 {
 public:
-    explicit RingBuffer(size_t capacity);
+    explicit ByteRingBuffer(size_t capacity);
 
     size_t readable() const;
     size_t writable() const;

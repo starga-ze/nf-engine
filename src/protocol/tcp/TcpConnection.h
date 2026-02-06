@@ -1,6 +1,6 @@
 #pragma once
 
-#include "algorithm/RingBuffer.h"
+#include "algorithm/ByteRingBuffer.h"
 
 #include <netinet/in.h>
 #include <vector>
@@ -22,10 +22,10 @@ public:
     int fd() const;
     const sockaddr_in& peer() const;
     std::deque<TxBuffer>& txQueue();
-    RingBuffer& rxRing() { return m_rxRing; }
+    ByteRingBuffer& rxRing() { return m_rxRing; }
 
 private:
-    RingBuffer m_rxRing;
+    ByteRingBuffer m_rxRing;
 
     std::deque<TxBuffer> m_txQueue;
     

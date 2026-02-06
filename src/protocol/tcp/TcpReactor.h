@@ -5,7 +5,7 @@
 #include "protocol/tcp/TcpConnection.h"
 #include "protocol/tcp/TcpFraming.h"
 
-#include "algorithm/RingBuffer.h"
+#include "algorithm/ByteRingBuffer.h"
 
 #include "packet/Packet.h"
 
