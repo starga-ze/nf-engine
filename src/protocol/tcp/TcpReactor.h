@@ -11,6 +11,7 @@
 #include "packet/Packet.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <mutex>
 
 class TlsServer;

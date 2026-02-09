@@ -370,7 +370,15 @@ void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 void TcpReactor::processTxQueue()
 {
     std::vector<std::unique_ptr<Packet>> packets;
+    
     m_txQueue.dequeueAll(packets);
+
+    if (packets.empty())
+    {
+        return;
+    }
+
+    std::unordered_set<int> dirtyFds;
 
     for (auto& pkt : packets)
     {
@@ -383,16 +391,21 @@ void TcpReactor::processTxQueue()
 
         auto& conn = it->second;
         ByteRingBuffer& txRing = conn->txRing();
-
         const auto& payload = pkt->getPayload();
 
-        size_t written = txRing.write(payload.data(), payload.size());
-
-        if (written < payload.size())
+        if (txRing.writable() < payload.size())
         {
             LOG_WARN("Tx RingBuffer Full, dropping packet, fd={}", fd);
+            continue;
         }
 
+        txRing.write(payload.data(), payload.size());
+
+        dirtyFds.insert(fd);
+    }
+
+    for (int fd : dirtyFds)
+    {
         flushTxBuffer(fd);
     }
 }
