@@ -6,6 +6,7 @@
 #include "protocol/tcp/TcpFraming.h"
 
 #include "algorithm/ByteRingBuffer.h"
+#include "algorithm/MpscQueue.h"
 
 #include "packet/Packet.h"
 
@@ -13,12 +14,6 @@
 #include <mutex>
 
 class TlsServer;
-
-struct TxRequest
-{
-    int fd;
-    TxBuffer buf;
-};
 
 class TcpReactor
 {
@@ -45,9 +40,8 @@ private:
     void handoverToTls(int fd);
     void shutdown();
 
-    void snapshotPendingTx();
-    void flushAllTxQueue(size_t budget);
-    size_t flushTxQueueForFd(int fd, size_t budget);
+    void processTxQueue();
+    void flushTxBuffer(int fd);
 
     TcpWorker* m_tcpWorker;
     std::shared_ptr<TlsServer> m_tlsServer;
@@ -55,11 +49,11 @@ private:
 
     std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
 
+    MpscQueue m_txQueue;
+
     int m_port;
     int m_listenFd;
     sockaddr_in m_serverAddr{};
     std::atomic<bool> m_running = false;
 
-    std::mutex m_pendingTxLock;
-    std::deque<TxRequest> m_pendingTx;
 };

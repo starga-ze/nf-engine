@@ -15,6 +15,7 @@
 #define TCP_RECV_CHUNK_SIZE     (4096)
 #define TCP_MAX_EVENTS          (64)
 #define TCP_MAX_RX_BUFFER_SIZE  (256 * 1024);
+#define TCP_MAX_TX_BUFFER_SIZE  (256 * 1024);
 
 TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
@@ -64,8 +65,7 @@ void TcpReactor::start()
             if (fd == m_tcpEpoll->getWakeupFd()) 
             {
                 m_tcpEpoll->drainWakeup();
-                snapshotPendingTx();
-                flushAllTxQueue(256);
+                processTxQueue();
                 continue;
             }
 
@@ -88,7 +88,7 @@ void TcpReactor::start()
 
             if (ev & EPOLLOUT)
             {
-                flushTxQueueForFd(fd, 128);
+                flushTxBuffer(fd);
             }
         }
     }
@@ -225,10 +225,12 @@ void TcpReactor::acceptConnection()
 
         setNonBlocking(fd);
 
-        size_t rcv = TCP_MAX_RX_BUFFER_SIZE;
-        ::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+        size_t rxCapacity = TCP_MAX_RX_BUFFER_SIZE;
+        size_t txCapacity = TCP_MAX_TX_BUFFER_SIZE;
 
-        auto conn = std::make_unique<TcpConnection>(fd, peer, rcv);
+        ::setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rxCapacity, sizeof(rxCapacity));
+
+        auto conn = std::make_unique<TcpConnection>(fd, peer, rxCapacity, txCapacity);
 
         m_conns.emplace(fd, std::move(conn));
         m_tcpEpoll->add(fd, EPOLLIN | EPOLLRDHUP);
@@ -355,104 +357,91 @@ void TcpReactor::handoverToTls(int fd)
 
 void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 {
-    if (!pkt) return;
-
-    TxRequest req;
-    req.fd = pkt->getFd();
-    req.buf.data = pkt->takePayload();
-    req.buf.offset = 0;
-
+    if (!pkt) 
     {
-        std::lock_guard<std::mutex> lock(m_pendingTxLock);
-        m_pendingTx.push_back(std::move(req));
+        return;
     }
+        
+    m_txQueue.enqueue(std::move(pkt));
 
     m_tcpEpoll->wakeup();
 }
 
-void TcpReactor::snapshotPendingTx()
+void TcpReactor::processTxQueue()
 {
-    std::deque<TxRequest> local;
-    {
-        std::lock_guard<std::mutex> lock(m_pendingTxLock);
-        local.swap(m_pendingTx);
-    }
+    std::vector<std::unique_ptr<Packet>> packets;
+    m_txQueue.dequeueAll(packets);
 
-    for (auto& req : local)
+    for (auto& pkt : packets)
     {
-        auto it = m_conns.find(req.fd);
+        int fd = pkt->getFd();
+        auto it = m_conns.find(fd);
         if (it == m_conns.end())
         {
             continue;
         }
 
         auto& conn = it->second;
+        ByteRingBuffer& txRing = conn->txRing();
 
-        conn->txQueue().push_back(std::move(req.buf));
+        const auto& payload = pkt->getPayload();
 
-        m_tcpEpoll->mod(req.fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+        size_t written = txRing.write(payload.data(), payload.size());
+
+        if (written < payload.size())
+        {
+            LOG_WARN("Tx RingBuffer Full, dropping packet, fd={}", fd);
+        }
+
+        flushTxBuffer(fd);
     }
 }
-
-
-void TcpReactor::flushAllTxQueue(size_t budgetPkts)
-{
-    size_t used = 0;
-
-    for (auto& [fd, conn] : m_conns)
-    {
-        if (used >= budgetPkts)
-            break;
-
-        if (conn->txQueue().empty())
-            continue;
-
-        used += flushTxQueueForFd(fd, budgetPkts - used);
-    }
-}
-
-size_t TcpReactor::flushTxQueueForFd(int fd, size_t budgetPkts)
+void TcpReactor::flushTxBuffer(int fd)
 {
     auto it = m_conns.find(fd);
     if (it == m_conns.end())
-        return 0;
-
-    auto& q = it->second->txQueue();
-    size_t used = 0;
-
-    while (used < budgetPkts && !q.empty())
     {
-        auto& buf = q.front();
-
-        while (buf.offset < buf.data.size())
-        {
-            const uint8_t* p = buf.data.data() + buf.offset;
-            size_t remain = buf.data.size() - buf.offset;
-
-            ssize_t n = ::send(fd, p, remain, MSG_NOSIGNAL);
-            if (n < 0)
-            {
-                if (errno == EAGAIN || errno == EWOULDBLOCK)
-                {
-                    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
-                    return used + 1;
-                }
-
-                closeConnection(fd);
-                return used + 1;
-            }
-
-            buf.offset += static_cast<size_t>(n);
-        }
-
-        q.pop_front();
-        used++;
+        return;
     }
 
-    if (q.empty())
-        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLRDHUP);
-    else
-        m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+    auto& conn = it->second;
+    ByteRingBuffer& txRing = conn->txRing();
 
-    return used;
+    if (txRing.readable() == 0)
+    {
+        return;
+    }
+
+    while (txRing.readable() > 0)
+    {
+        const uint8_t* ptr = txRing.readPtr();
+        size_t len = txRing.readLen();
+
+        ssize_t sent = ::send(fd, ptr, len, MSG_NOSIGNAL);
+
+        if (sent < 0)
+        {
+            if (errno == EAGAIN || errno == EWOULDBLOCK)
+            {
+                m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+                return;
+            }
+            else
+            {
+                LOG_ERROR("send error fd={} errno={}", fd, errno);
+                closeConnection(fd);
+                return;
+            }
+        }
+
+        txRing.consume(static_cast<size_t>(sent));
+
+        if (static_cast<size_t>(sent) < len)
+        {
+            m_tcpEpoll->mod(fd, EPOLLIN | EPOLLOUT | EPOLLRDHUP);
+            return;
+        }
+    }
+
+    m_tcpEpoll->mod(fd, EPOLLIN | EPOLLRDHUP);
 }
