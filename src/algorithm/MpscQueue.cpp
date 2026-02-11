@@ -41,11 +41,9 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
         if (tail - head >= m_capacity)
             return false;
 
-        if (m_tail.compare_exchange_weak(
-                tail,
-                tail + 1,
-                std::memory_order_acq_rel,
-                std::memory_order_relaxed))
+        if (m_tail.compare_exchange_weak(tail, tail + 1, 
+                    std::memory_order_acq_rel,
+                    std::memory_order_relaxed))
         {
             break;
         }

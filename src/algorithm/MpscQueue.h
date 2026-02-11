@@ -30,7 +30,7 @@ private:
 
     std::unique_ptr<Slot[]> m_buffer;
 
-    std::atomic<size_t> m_tail{0}; // producer index allocator
-    std::atomic<size_t> m_head{0};              // consumer only
+    alignas(64) std::atomic<size_t> m_tail{0};
+    alignas(64) std::atomic<size_t> m_head{0};
 };
 
