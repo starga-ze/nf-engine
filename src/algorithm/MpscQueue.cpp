@@ -29,15 +29,30 @@ MpscQueue::~MpscQueue()
 
 bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
 {
-    size_t seq = m_tail.fetch_add(1, std::memory_order_relaxed);
-    size_t idx = seq & m_mask;
+    size_t tail;
 
-    Slot& slot = m_buffer[idx];
-
-    while (slot.ready.load(std::memory_order_acquire))
+    while (true)
     {
-        std::this_thread::yield();
+        tail = m_tail.load(std::memory_order_relaxed);
+        size_t idx = tail & m_mask;
+        Slot& slot = m_buffer[idx];
+
+        size_t head = m_head.load(std::memory_order_acquire);
+        if (tail - head >= m_capacity)
+            return false;
+
+        if (m_tail.compare_exchange_weak(
+                tail,
+                tail + 1,
+                std::memory_order_acq_rel,
+                std::memory_order_relaxed))
+        {
+            break;
+        }
     }
+
+    size_t idx = tail & m_mask;
+    Slot& slot = m_buffer[idx];
 
     slot.ptr = item.get();
 
@@ -46,6 +61,7 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
     item.release();
     return true;
 }
+
 
 void MpscQueue::dequeueAll(std::vector<std::unique_ptr<Packet>>& out)
 {

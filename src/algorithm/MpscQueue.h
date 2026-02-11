@@ -19,7 +19,7 @@ public:
     bool empty() const;
 
 private:
-    struct Slot
+    struct alignas(64) Slot
     {
         std::atomic<bool> ready;
         Packet* ptr;
@@ -31,6 +31,6 @@ private:
     std::unique_ptr<Slot[]> m_buffer;
 
     std::atomic<size_t> m_tail{0}; // producer index allocator
-    size_t m_head{0};              // consumer only
+    std::atomic<size_t> m_head{0};              // consumer only
 };
 
