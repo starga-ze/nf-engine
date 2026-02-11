@@ -8,6 +8,8 @@ MpscQueue::MpscQueue(size_t capacity)
     : m_capacity(capacity)
     , m_mask(capacity - 1)
 {
+    assert(capacity != 0 and (capacity & (capacity - 1)) == 0);
+
     m_buffer = std::make_unique<std::atomic<Packet*>[]>(capacity);
 
     for (size_t i = 0; i < capacity; ++i)
@@ -41,65 +43,46 @@ MpscQueue::~MpscQueue()
 
 bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
 {
-    const size_t tail = m_tail.load(std::memory_order_relaxed);
-    const size_t head = m_head.load(std::memory_order_acquire);
+    size_t tail = m_tail.load(std::memory_order_relaxed);
+    size_t head = m_head.load(std::memory_order_acquire);
 
-    if ((long)(tail - head) >= (long)m_capacity)
+    if (tail - head >= m_capacity)
     {
-        LOG_WARN("MpscQueue is Full! Dropping packet. Head={}, Tail={}, Cap={}", 
-                 head, tail, m_capacity);
         return false;
     }
 
-    size_t seq = m_tail.fetch_add(1, std::memory_order_acq_rel);
-    size_t idx = seq & m_mask;
+    size_t idx = tail & m_mask;
 
-    std::atomic<Packet*>& slot = m_buffer[idx];
-    Packet* expected = nullptr;
+    m_buffer[idx].store(item.get(), std::memory_order_release);
 
-    while (!slot.compare_exchange_weak(expected, item.get(), 
-                                       std::memory_order_release, 
-                                       std::memory_order_relaxed))
-    {
-        expected = nullptr;
-        std::this_thread::yield(); 
-    }
-
+    m_tail.store(tail + 1, std::memory_order_release);
+    
     item.release();
     return true;
 }
 
-void MpscQueue::dequeueAll(std::vector<std::unique_ptr<Packet>>& outItems)
+void MpscQueue::dequeueAll(std::vector<std::unique_ptr<Packet>>& out)
 {
-    outItems.clear();
+    out.clear();
 
-    while (true)
+    size_t head = m_head.load(std::memory_order_relaxed);
+    size_t tail = m_tail.load(std::memory_order_acquire);
+
+    while (head < tail)
     {
-        size_t head = m_head.load(std::memory_order_relaxed);
-        size_t tail = m_tail.load(std::memory_order_acquire);
-
-        if (head >= tail)
-        {
-            return;
-        }
-
         size_t idx = head & m_mask;
-        std::atomic<Packet*>& slot = m_buffer[idx];
 
-        Packet* ptr = slot.load(std::memory_order_acquire);
-        
-        if (ptr == nullptr)
-        {
-            std::this_thread::yield();
-            continue;
-        }
+        Packet* ptr = m_buffer[idx].load(std::memory_order_acquire);
+        if (!ptr)
+            break;
 
-        slot.store(nullptr, std::memory_order_release);
-        
-        outItems.emplace_back(std::unique_ptr<Packet>(ptr));
+        m_buffer[idx].store(nullptr, std::memory_order_release);
 
-        m_head.store(head + 1, std::memory_order_release);
+        out.emplace_back(ptr);
+        ++head;
     }
+
+    m_head.store(head, std::memory_order_release);
 }
 
 bool MpscQueue::empty() const
