@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <atomic>
 #include <memory>
-#include <cassert>
+#include <vector>
+#include <cstddef>
 
 class Packet;
 
@@ -13,23 +13,24 @@ public:
     explicit MpscQueue(size_t capacity);
     ~MpscQueue();
 
-    MpscQueue(const MpscQueue&) = delete;
-    MpscQueue& operator=(const MpscQueue&) = delete;
-
     bool enqueue(std::unique_ptr<Packet> item);
-
-    void dequeueAll(std::vector<std::unique_ptr<Packet>>& outItems);
+    void dequeueAll(std::vector<std::unique_ptr<Packet>>& out);
 
     bool empty() const;
 
-    size_t capacity() const { return m_capacity; }
-
 private:
-    std::unique_ptr<std::atomic<Packet*>[]> m_buffer;
+    struct Slot
+    {
+        std::atomic<bool> ready;
+        Packet* ptr;
+    };
 
-    size_t m_mask;
-    size_t m_capacity;
+    const size_t m_capacity;
+    const size_t m_mask;
 
-    alignas(64) std::atomic<size_t> m_tail;
-    alignas(64) std::atomic<size_t> m_head;
+    std::unique_ptr<Slot[]> m_buffer;
+
+    std::atomic<size_t> m_tail{0}; // producer index allocator
+    size_t m_head{0};              // consumer only
 };
+
