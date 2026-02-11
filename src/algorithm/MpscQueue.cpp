@@ -1,5 +1,6 @@
 #include "MpscQueue.h"
 #include "packet/Packet.h"
+#include "util/Logger.h"
 
 #include <thread>
 #include <cassert>
@@ -9,7 +10,11 @@ MpscQueue::MpscQueue(size_t capacity)
       m_mask(capacity - 1),
       m_buffer(std::make_unique<Slot[]>(capacity))
 {
-    assert(capacity != 0 && (capacity & (capacity - 1)) == 0);
+    if (capacity != 0 && (capacity & (capacity - 1)) == 0)
+    {
+        LOG_FATAL("MpscQueue capacity must be power of 2");
+        std::abort();
+    }
 
     for (size_t i = 0; i < capacity; ++i)
     {
@@ -20,11 +25,18 @@ MpscQueue::MpscQueue(size_t capacity)
 
 MpscQueue::~MpscQueue()
 {
+    size_t leaked = 0;
+
     for (size_t i = 0; i < m_capacity; ++i)
     {
         if (m_buffer[i].ptr)
+        {
             delete m_buffer[i].ptr;
+            ++leaked;
+        }
     }
+
+    LOG_DEBUG("MpscQueue destroy, leak count: {}", leaked);
 }
 
 bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
@@ -57,6 +69,7 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
     slot.ready.store(true, std::memory_order_release);
 
     item.release();
+
     return true;
 }
 

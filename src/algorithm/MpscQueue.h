@@ -19,7 +19,7 @@ public:
     bool empty() const;
 
 private:
-    struct alignas(64) Slot
+    struct Slot
     {
         std::atomic<bool> ready;
         Packet* ptr;
