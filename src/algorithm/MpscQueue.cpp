@@ -108,7 +108,7 @@ void MpscQueue::dequeueAll(std::vector<std::unique_ptr<Packet>>& out)
 
 bool MpscQueue::empty() const
 {
-    const Slot& slot = m_buffer[m_head & m_mask];
-    return !slot.ready.load(std::memory_order_acquire);
+    return m_head.load(std::memory_order_acquire) == 
+        m_tail.load(std::memory_order_acquire);
 }
 
