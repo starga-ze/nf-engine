@@ -10,7 +10,7 @@ MpscQueue::MpscQueue(size_t capacity)
       m_mask(capacity - 1),
       m_buffer(std::make_unique<Slot[]>(capacity))
 {
-    if (capacity != 0 && (capacity & (capacity - 1)) == 0)
+    if (capacity == 0 or (capacity & (capacity - 1)) != 0)
     {
         LOG_FATAL("MpscQueue capacity must be power of 2");
         std::abort();
