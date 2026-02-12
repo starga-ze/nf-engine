@@ -14,14 +14,16 @@
 
 #define TCP_RECV_CHUNK_SIZE     (4096)
 #define TCP_MAX_EVENTS          (64)
-#define TCP_MAX_RX_BUFFER_SIZE  (256 * 1024)
-#define TCP_MAX_TX_BUFFER_SIZE  (256 * 1024)
+#define TCP_MAX_RX_BUFFER_SIZE  (65536) // 64 KB
+#define TCP_MAX_TX_BUFFER_SIZE  (65536) // 64 KB
+#define TCP_MPSC_QUEUE_SIZE (65536) // 64K Slot
 
 TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
     m_tcpWorker(tcpWorker),
     m_tlsServer(tlsServer)
 {
+    m_txQueue = std::make_unique<MpscQueue>(TCP_MPSC_QUEUE_SIZE);
     m_tcpEpoll = std::make_unique<TcpEpoll>();
 }
 
@@ -362,16 +364,21 @@ void TcpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
         return;
     }
         
-    m_txQueue.enqueue(std::move(pkt));
-
-    m_tcpEpoll->wakeup();
+    if (m_txQueue->enqueue(std::move(pkt)))
+    {
+        m_tcpEpoll->wakeup();
+    }
+    else
+    {
+        LOG_WARN("TcpReactor Tx MPSC Queue Full, pkt dropped");
+    }
 }
 
 void TcpReactor::processTxQueue()
 {
     std::vector<std::unique_ptr<Packet>> packets;
     
-    m_txQueue.dequeueAll(packets);
+    m_txQueue->dequeueAll(packets);
 
     if (packets.empty())
     {
@@ -409,6 +416,7 @@ void TcpReactor::processTxQueue()
         flushTxBuffer(fd);
     }
 }
+
 void TcpReactor::flushTxBuffer(int fd)
 {
     auto it = m_conns.find(fd);

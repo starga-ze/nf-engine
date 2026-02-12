@@ -1,23 +1,36 @@
 #pragma once
 
-#include <vector>
-#include <mutex>
+#include <atomic>
 #include <memory>
+#include <vector>
+#include <cstddef>
 
 class Packet;
 
 class MpscQueue
 {
 public:
-    MpscQueue() = default;
-    ~MpscQueue() = default;
+    explicit MpscQueue(size_t capacity);
+    ~MpscQueue();
 
-    void enqueue(std::unique_ptr<Packet> item);
-    void dequeueAll(std::vector<std::unique_ptr<Packet>>& outItems);
+    bool enqueue(std::unique_ptr<Packet> item);
+    void dequeueAll(std::vector<std::unique_ptr<Packet>>& out);
 
-    bool empty();
+    bool empty() const;
 
 private:
-    std::mutex m_lock;
-    std::vector<std::unique_ptr<Packet>> m_queue;
+    struct Slot
+    {
+        std::atomic<bool> ready;
+        Packet* ptr;
+    };
+
+    const size_t m_capacity;
+    const size_t m_mask;
+
+    std::unique_ptr<Slot[]> m_buffer;
+
+    alignas(64) std::atomic<size_t> m_tail{0};
+    alignas(64) std::atomic<size_t> m_head{0};
 };
+
