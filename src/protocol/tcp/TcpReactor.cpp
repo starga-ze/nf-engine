@@ -16,7 +16,7 @@
 #define TCP_MAX_EVENTS          (64)
 #define TCP_MAX_RX_BUFFER_SIZE  (65536) // 64 KB
 #define TCP_MAX_TX_BUFFER_SIZE  (65536) // 64 KB
-#define TCP_MPSC_QUEUE_SIZE (65536) // 64 * 8 = 512 KB
+#define TCP_MPSC_QUEUE_SIZE (65536) // 64 Slot
 
 TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
