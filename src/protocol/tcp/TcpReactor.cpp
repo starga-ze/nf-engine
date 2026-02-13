@@ -18,11 +18,18 @@
 #define TCP_MAX_TX_BUFFER_SIZE  (65536) // 64 KB
 #define TCP_MPSC_QUEUE_SIZE (65536) // 64K Slot
 
-TcpReactor::TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer) :
+TcpReactor::TcpReactor(int port, std::vector<std::unique_ptr<TcpWorker>>& tcpWorkers, 
+        std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
-    m_tcpWorker(tcpWorker),
     m_tlsServer(tlsServer)
 {
+    m_tcpWorkers.reserve(tcpWorkers.size());
+
+    for (const auto& worker : tcpWorkers)
+    {
+        m_tcpWorkers.push_back(worker.get());
+    }
+
     m_txQueue = std::make_unique<MpscQueue>(TCP_MPSC_QUEUE_SIZE);
     m_tcpEpoll = std::make_unique<TcpEpoll>();
 }
@@ -304,7 +311,9 @@ void TcpReactor::receive(int fd)
                 auto pkt = std::make_unique<Packet>(fd, Protocol::TCP, std::move(payload), 
                         conn->peer(), m_serverAddr);
 
-                m_tcpWorker->enqueueRx(std::move(pkt));
+                /* temp load balancing */
+                size_t idx = pkt->getFd() % m_tcpWorkers.size();
+                m_tcpWorkers[idx]->enqueueRx(std::move(pkt));
             }
             continue;
         }

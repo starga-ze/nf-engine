@@ -4,14 +4,20 @@
 #include "util/ThreadManager.h"
 #include "ingress/RxRouter.h"
 #include "packet/Packet.h"
+#include "protocol/tcp/TcpEpoll.h"
 
 #include <thread>
+#include <sys/epoll.h>
 
-TcpWorker::TcpWorker(RxRouter* rxRouter, int worker, ThreadManager* threadManager)
-    : m_rxRouter(rxRouter),
-      m_worker(worker),
-      m_threadManager(threadManager)
+#define TCP_SPSC_QUEUE_SIZE (65536) // 64K Slot
+
+TcpWorker::TcpWorker(RxRouter* rxRouter, ThreadManager* threadManager, int id) : 
+    m_rxRouter(rxRouter),
+    m_threadManager(threadManager),
+    m_id(id)
 {
+    m_rxQueue = std::make_unique<SpscQueue>(TCP_SPSC_QUEUE_SIZE);
+    m_rxEpoll = std::make_unique<TcpEpoll>();
 }
 
 TcpWorker::~TcpWorker()
@@ -21,55 +27,69 @@ TcpWorker::~TcpWorker()
 
 void TcpWorker::start()
 {
+    if (not m_rxEpoll->init())
+    {
+        LOG_ERROR("TcpWorker rx epoll init failed");
+        return;
+    }
+
     m_running = true;
 
-    for (int i = 0; i < m_worker; ++i)
-    {
-        m_threadManager->addThread("tcp_worker_" + std::to_string(i),
+    m_threadManager->addThread("tcp_worker_" + std::to_string(m_id), 
             std::bind(&TcpWorker::processPacket, this),
-            std::function<void()>{}
-        );
-    }
+            std::function<void()>{});
 }
 
 void TcpWorker::stop()
 {
     m_running = false;
-    m_cv.notify_all();
 }
 
 void TcpWorker::enqueueRx(std::unique_ptr<Packet> pkt)
 {
-    if (!pkt) return;
-
+    if (not pkt) 
     {
-        std::lock_guard<std::mutex> lock(m_lock);
-        m_rxQueue.push(std::move(pkt));
+        return;
     }
-    m_cv.notify_one();
+
+    if (m_rxQueue->enqueue(std::move(pkt)))
+    {
+        m_rxEpoll->wakeup();
+    }
+    else
+    {
+        LOG_WARN("TcpWorker SPSC Rx queue full, pkt dropped");
+    }
 }
 
 void TcpWorker::processPacket()
 {
-    while (true)
+    std::vector<epoll_event> events(4);
+
+    while (m_running)
     {
-        std::unique_ptr<Packet> pkt;
-
+        int n = m_rxEpoll->wait(events, -1);
+        if (n <= 0)
         {
-            std::unique_lock<std::mutex> lock(m_lock);
-
-            while (m_rxQueue.empty() and m_running)
-            {
-                m_cv.wait(lock);
-            }
-
-            if (!m_running && m_rxQueue.empty())
-                return;
-
-            pkt = std::move(m_rxQueue.front());
-            m_rxQueue.pop();
+            continue;
         }
 
+        for (int i = 0; i < n; ++i)
+        {
+            if (events[i].data.fd == m_rxEpoll->getWakeupFd())
+            {
+                m_rxEpoll->drainWakeup();
+
+                while (auto pkt = m_rxQueue->dequeue())
+                {
+                    m_rxRouter->handlePacket(std::move(pkt));
+                }
+            }
+        }
+    }
+
+    while (auto pkt = m_rxQueue->dequeue())
+    {
         m_rxRouter->handlePacket(std::move(pkt));
     }
 }

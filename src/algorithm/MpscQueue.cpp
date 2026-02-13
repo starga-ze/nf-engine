@@ -35,7 +35,6 @@ MpscQueue::~MpscQueue()
             ++leaked;
         }
     }
-
     LOG_DEBUG("MpscQueue destroy, leak count: {}", leaked);
 }
 
@@ -45,7 +44,8 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
 
     while (true)
     {
-        tail = m_tail.load(std::memory_order_relaxed);
+        m_tail.load(std::memory_order_relaxed);
+        size_t next = tail + 1;
 
         size_t head = m_head.load(std::memory_order_acquire);
         if (tail - head >= m_capacity)
@@ -53,7 +53,7 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
             return false;
         }
 
-        if (m_tail.compare_exchange_weak(tail, tail + 1, 
+        if (m_tail.compare_exchange_weak(tail, next, 
                     std::memory_order_acq_rel,
                     std::memory_order_relaxed))
         {

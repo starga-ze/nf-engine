@@ -6,8 +6,11 @@
 TcpServer::TcpServer(int port, RxRouter* rxRouter, int worker, 
         ThreadManager* threadManager, std::shared_ptr<TlsServer> tlsServer)
 {
-    m_tcpWorker = std::make_unique<TcpWorker>(rxRouter, worker, threadManager);
-    m_tcpReactor = std::make_unique<TcpReactor>(port, m_tcpWorker.get(), tlsServer);
+    for (int i = 0; i < worker; ++i)
+    {
+        m_tcpWorkers.emplace_back(std::make_unique<TcpWorker>(rxRouter, threadManager, i));
+    }
+    m_tcpReactor = std::make_unique<TcpReactor>(port, m_tcpWorkers, tlsServer);
 }
 
 TcpServer::~TcpServer()
@@ -17,14 +20,20 @@ TcpServer::~TcpServer()
 
 void TcpServer::start()
 {
-    m_tcpWorker->start();
+    for (auto& worker : m_tcpWorkers)
+    {
+        worker->start();
+    }
     m_tcpReactor->start();
 }
 
 void TcpServer::stop()
 {
     m_tcpReactor->stop();
-    m_tcpWorker->stop();
+    for (auto& worker : m_tcpWorkers)
+    {
+        worker->stop();
+    }
 }
 
 void TcpServer::enqueueTx(std::unique_ptr<Packet> pkt)

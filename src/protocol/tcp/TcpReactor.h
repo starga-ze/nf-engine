@@ -12,14 +12,14 @@
 
 #include <unordered_map>
 #include <unordered_set>
-#include <mutex>
 
 class TlsServer;
 
 class TcpReactor
 {
 public:
-    TcpReactor(int port, TcpWorker* tcpWorker, std::shared_ptr<TlsServer> tlsServer);
+    TcpReactor(int port, std::vector<std::unique_ptr<TcpWorker>>& tcpWorkers, 
+            std::shared_ptr<TlsServer> tlsServer);
     ~TcpReactor();
 
     void start();
@@ -44,7 +44,7 @@ private:
     void processTxQueue();
     void flushTxBuffer(int fd);
 
-    TcpWorker* m_tcpWorker;
+    std::vector<TcpWorker*> m_tcpWorkers;
     std::shared_ptr<TlsServer> m_tlsServer;
     std::unique_ptr<TcpEpoll> m_tcpEpoll;
 
