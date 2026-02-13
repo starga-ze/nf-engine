@@ -43,6 +43,7 @@ void TcpWorker::start()
 void TcpWorker::stop()
 {
     m_running = false;
+    m_rxEpoll->wakeup();
 }
 
 void TcpWorker::enqueueRx(std::unique_ptr<Packet> pkt)

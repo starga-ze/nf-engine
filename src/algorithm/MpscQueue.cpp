@@ -44,7 +44,7 @@ bool MpscQueue::enqueue(std::unique_ptr<Packet> item)
 
     while (true)
     {
-        m_tail.load(std::memory_order_relaxed);
+        tail = m_tail.load(std::memory_order_relaxed);
         size_t next = tail + 1;
 
         size_t head = m_head.load(std::memory_order_acquire);
