@@ -25,6 +25,12 @@ TcpReactor::TcpReactor(int port, std::vector<std::unique_ptr<TcpWorker>>& tcpWor
 {
     m_tcpWorkers.reserve(tcpWorkers.size());
 
+    if (tcpWorkers.empty())
+    {
+        LOG_FATAL("TcpReactor requires at least one TcpWorker");
+        std::abort();
+    }
+
     for (const auto& worker : tcpWorkers)
     {
         m_tcpWorkers.push_back(worker.get());
