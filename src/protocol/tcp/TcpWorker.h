@@ -1,18 +1,19 @@
 #pragma once
 
+#include "algorithm/SpscQueue.h"
+
 #include <queue>
 #include <memory>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
 
+class TcpEpoll;
 class RxRouter;
 class Packet;
 class ThreadManager;
 
 class TcpWorker {
 public:
-    TcpWorker(RxRouter* rxRouter, int worker, ThreadManager* threadManager);
+    TcpWorker(RxRouter* rxRouter, ThreadManager* threadManager, int id);
     ~TcpWorker();
 
     void start();
@@ -23,15 +24,14 @@ public:
 private:
     void processPacket();
 
-private:
     RxRouter* m_rxRouter;
-    int m_worker;
     ThreadManager* m_threadManager;
 
     std::atomic<bool> m_running{false};
 
-    std::mutex m_lock;
-    std::condition_variable m_cv;
-    std::queue<std::unique_ptr<Packet>> m_rxQueue;
+    std::unique_ptr<SpscQueue> m_rxQueue;
+    std::unique_ptr<TcpEpoll> m_rxEpoll;
+
+    int m_id;
 };
 

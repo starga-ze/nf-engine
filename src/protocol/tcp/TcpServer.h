@@ -5,6 +5,7 @@
 #include "protocol/tls/TlsServer.h"
 
 #include <memory>
+#include <vector>
 
 class Packet;
 class TcpWorker;
@@ -24,6 +25,6 @@ public:
     void enqueueTx(std::unique_ptr<Packet> pkt);
 
 private:
-    std::unique_ptr<TcpWorker> m_tcpWorker;
+    std::vector<std::unique_ptr<TcpWorker>> m_tcpWorkers;
     std::unique_ptr<TcpReactor> m_tcpReactor;
 };
