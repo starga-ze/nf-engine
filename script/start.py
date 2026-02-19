@@ -5,6 +5,7 @@ import subprocess
 from script.utils import (
     ROOT_DIR,
     BUILD_DIR,
+    CERT_DIR,
     run_cmd,
 )
 
@@ -22,6 +23,33 @@ SERVER_SERVICE_SRC = os.path.join(SCRIPT_DIR, "nf-serverd.service")
 MGMT_SERVICE_SRC = os.path.join(SCRIPT_DIR, "nf-mgmtd.service")
 
 SYSTEMD_DIR = "/etc/systemd/system"
+
+CERT_INSTALL_PATH = f"/etc/nf/cert"
+
+def install_certs():
+    print("[*] Installing TLS certificates...")
+
+    if not os.path.isdir(CERT_DIR):
+        print(f"[*] Error: cert directory not found: {CERT_DIR}")
+        sys.exit(1)
+
+    run_cmd(["mkdir", "-p", CERT_INSTALL_PATH],
+            msg="Creating /etc/nf/cert directory")
+
+    for fname in os.listdir(CERT_DIR):
+        src = os.path.join(CERT_DIR, fname)
+        dst = os.path.join(CERT_INSTALL_PATH, fname)
+
+        if not os.path.isfile(src):
+            continue
+
+        run_cmd(["cp", src, dst],
+                msg=f"Copying cert file: {fname}")
+
+        if fname.endswith(".key") or "key" in fname.lower():
+            run_cmd(["chmod", "600", dst])
+        else:
+            run_cmd(["chmod", "644", dst])
 
 
 def check_binaries():
@@ -84,6 +112,8 @@ def run():
 
     install_binaries()
     install_service_files()
+
+    install_certs()
 
     reload_systemd()
     enable_services()
