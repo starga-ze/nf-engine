@@ -1,97 +1,99 @@
 import os
 import sys
 import subprocess
-from script.utils import run_cmd, EXEC, CERT_DIR
 
-SERVICE_NAME = os.path.basename(EXEC)
+from script.utils import (
+    ROOT_DIR,
+    BUILD_DIR,
+    run_cmd,
+)
 
-EXEC_INSTALL_PATH = f"/usr/bin/{SERVICE_NAME}"
-CERT_INSTALL_PATH = f"/etc/nf/cert"
-SERVICE_PATH = f"/etc/systemd/system/{SERVICE_NAME}.service"
+BUILD_BIN_DIR = os.path.join(BUILD_DIR, "bin")
 
-SERVICE_TEXT = f"""[Unit]
-Description=nf-serverd service
-After=network-online.target
-Wants=network-online.target
+SERVER_BIN = os.path.join(BUILD_BIN_DIR, "nf-serverd")
+MGMT_BIN = os.path.join(BUILD_BIN_DIR, "nf-mgmtd")
 
-[Service]
-Type=simple
-ExecStart={EXEC_INSTALL_PATH} --database=false
-Restart=no
-RestartSec=3
-User=root
-LimitNOFILE=65535
-StandardOutput=null
-StandardError=null
-SyslogIdentifier={SERVICE_NAME}
-LimitCORE=infinity
-RuntimeDirectory=nf-server
-RuntimeDirectoryMode=0755
+SERVER_INSTALL = "/usr/bin/nf-serverd"
+MGMT_INSTALL = "/usr/bin/nf-mgmtd"
 
-[Install]
-WantedBy=multi-user.target
-"""
+SCRIPT_DIR = os.path.dirname(__file__)
+
+SERVER_SERVICE_SRC = os.path.join(SCRIPT_DIR, "nf-serverd.service")
+MGMT_SERVICE_SRC = os.path.join(SCRIPT_DIR, "nf-mgmtd.service")
+
+SYSTEMD_DIR = "/etc/systemd/system"
 
 
-def install_certs():
-    print("[*] Installing TLS certificates...")
+def check_binaries():
+    print("[*] Checking built binaries...")
 
-    if not os.path.isdir(CERT_DIR):
-        print(f"[*] Error: cert directory not found: {CERT_DIR}")
-        sys.exit(1)
+    for path in [SERVER_BIN, MGMT_BIN]:
+        if not os.path.isfile(path):
+            print(f"[ERROR] Binary not found: {path}")
+            print("[*] Please run build first.")
+            sys.exit(1)
 
-    run_cmd(["mkdir", "-p", CERT_INSTALL_PATH],
-            msg="Creating /etc/nf/cert directory")
 
-    for fname in os.listdir(CERT_DIR):
-        src = os.path.join(CERT_DIR, fname)
-        dst = os.path.join(CERT_INSTALL_PATH, fname)
+def stop_server_if_running():
+    subprocess.run(
+        ["systemctl", "stop", "nf-serverd"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
 
-        if not os.path.isfile(src):
-            continue
 
-        run_cmd(["cp", src, dst],
-                msg=f"Copying cert file: {fname}")
+def install_binaries():
+    run_cmd(["cp", SERVER_BIN, SERVER_INSTALL],
+            msg="Installing nf-serverd")
 
-        if fname.endswith(".key") or "key" in fname.lower():
-            run_cmd(["chmod", "600", dst])
-        else:
-            run_cmd(["chmod", "644", dst])
+    run_cmd(["cp", MGMT_BIN, MGMT_INSTALL],
+            msg="Installing nf-mgmtd")
+
+    run_cmd(["chmod", "755", SERVER_INSTALL])
+    run_cmd(["chmod", "755", MGMT_INSTALL])
+
+
+def install_service_files():
+    run_cmd(["cp", SERVER_SERVICE_SRC, SYSTEMD_DIR],
+            msg="Installing nf-serverd.service")
+
+    run_cmd(["cp", MGMT_SERVICE_SRC, SYSTEMD_DIR],
+            msg="Installing nf-mgmtd.service")
+
+
+def reload_systemd():
+    run_cmd(["systemctl", "daemon-reload"],
+            msg="Reloading systemd")
+
+
+def enable_services():
+    run_cmd(["systemctl", "enable", "nf-serverd"], msg=None)
+    run_cmd(["systemctl", "enable", "nf-mgmtd"], msg=None)
+
+
+def restart_server():
+    run_cmd(["systemctl", "restart", "nf-serverd"],
+            msg="Restarting nf-serverd")
 
 
 def run():
-    print(f"[*] Installing and starting {EXEC} service...")
+    print("[*] Starting nf-engine services...")
 
-    if not os.path.isfile(EXEC):
-        print(f"[*] Error: Built binary not found at: {EXEC}")
-        print("[*] Please run './nf-server build' first.")
-        sys.exit(1)
+    check_binaries()
+    stop_server_if_running()
 
-    status_result = subprocess.run(
-        ["systemctl", "is-active", "--quiet", SERVICE_NAME],
-        check=False,
-        capture_output=True
-    )
+    install_binaries()
+    install_service_files()
 
-    if status_result.returncode == 0:
-        run_cmd(["systemctl", "stop", SERVICE_NAME], msg="Stopping currently running service")
+    reload_systemd()
+    enable_services()
+    restart_server()
 
-    run_cmd(["cp", EXEC, EXEC_INSTALL_PATH], msg="Copying binary to /usr/bin")
-    run_cmd(["chmod", "755", EXEC_INSTALL_PATH])
+    subprocess.run(["systemctl", "status", "nf-serverd", "--no-pager"])
 
-    install_certs()
+    print("[*] Done. Services are running.")
 
-    print("[*] Writing systemd service file ...")
-    try:
-        with open(SERVICE_PATH, "w") as f:
-            f.write(SERVICE_TEXT)
-    except IOError as e:
-        print(f"[*] Error, Failed to write service file: {e}")
-        sys.exit(1)
 
-    run_cmd(["systemctl", "daemon-reload"], msg="Reloading systemd")
-    run_cmd(["systemctl", "restart", SERVICE_NAME], msg="Starting or restarting service")
+if __name__ == "__main__":
+    run()
 
-    subprocess.run(["systemctl", "status", SERVICE_NAME, "--no-pager"])
-
-    print("[*] Done, Service is active and running.")

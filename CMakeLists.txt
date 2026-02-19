@@ -1,17 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(PacketSimulator CXX)
+project(nf-engine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
-file(GLOB_RECURSE SRC_FILES
-        "${CMAKE_SOURCE_DIR}/src/*.cpp"
-)
-
-include_directories(
-        ${CMAKE_SOURCE_DIR}/src
-)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(THIRD_PARTY_INSTALL_DIR "${CMAKE_SOURCE_DIR}/3rd_party/install")
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/spdlog)
@@ -60,12 +52,5 @@ add_compile_options(
 
 find_package(Threads REQUIRED)
 
-add_executable(nf-serverd ${SRC_FILES})
-
-target_link_libraries(nf-serverd PRIVATE
-        spdlog::spdlog
-        OpenSSL::SSL
-        OpenSSL::Crypto
-        Threads::Threads
-        odbc
-)
+add_subdirectory(nf-server)
+add_subdirectory(nf-mgmt)

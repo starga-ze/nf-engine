@@ -1,0 +1,15 @@
+file(GLOB_RECURSE MGMT_SRC_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+)
+
+add_executable(nf-mgmtd ${MGMT_SRC_FILES})
+
+target_include_directories(nf-mgmtd PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(nf-mgmtd PRIVATE
+    spdlog::spdlog
+    Threads::Threads
+)
+

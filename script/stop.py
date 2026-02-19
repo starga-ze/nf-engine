@@ -22,4 +22,4 @@ def run():
 
     subprocess.run(["systemctl", "status", DAEMON_NAME, "--no-pager"])
 
-    print("[*] Done!")
+    print("[*] Done. Stop services successfully..")
