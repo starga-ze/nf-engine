@@ -1,0 +1,20 @@
+[Unit]
+Description=nf-mgmtd service
+After=nf-serverd.service
+Requires=nf-serverd.service
+PartOf=nf-serverd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/nf-mgmtd
+Restart=on-failure
+RestartSec=1
+User=root
+LimitNOFILE=65535
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nf-mgmtd
+
+[Install]
+WantedBy=multi-user.target
+
