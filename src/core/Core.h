@@ -2,6 +2,7 @@
 #include "util/Macro.h"
 #include "util/ThreadManager.h"
 
+#include "ipc/IpcServer.h"
 #include "db/DbManager.h"
 #include "shard/ShardManager.h"
 #include "session/SessionManager.h"
@@ -33,6 +34,8 @@ public:
     void setFlag(bool enableDb);
 
 private:
+    void initializeIpcServer();
+
     bool initializeRuntime();
 
     bool initializeTlsContext();
@@ -58,6 +61,8 @@ private:
     void startThreads();
 
     void waitForShutdown();
+
+    std::unique_ptr <IpcServer> m_ipcServer;
 
     std::unique_ptr <TlsContext> m_tlsContext;
 

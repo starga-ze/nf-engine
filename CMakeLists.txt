@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(PacketSimulator CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -16,7 +16,6 @@ include_directories(
 set(THIRD_PARTY_INSTALL_DIR "${CMAKE_SOURCE_DIR}/3rd_party/install")
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/spdlog)
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/openssl)
-
 
 find_package(spdlog REQUIRED)
 
@@ -52,12 +51,18 @@ set_target_properties(OpenSSL::Crypto PROPERTIES
         IMPORTED_LOCATION "${CRYPTO_LIBRARY}"
 )
 
+add_compile_options(
+    -Wall
+    -Wextra
+    -fdiagnostics-color=always
+)
+
 
 find_package(Threads REQUIRED)
 
-add_executable(nf-server ${SRC_FILES})
+add_executable(nf-serverd ${SRC_FILES})
 
-target_link_libraries(nf-server PRIVATE
+target_link_libraries(nf-serverd PRIVATE
         spdlog::spdlog
         OpenSSL::SSL
         OpenSSL::Crypto

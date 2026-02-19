@@ -4,11 +4,11 @@
 #include <vector>
 #include <cstdint>
 
-class TcpEpoll 
+class Epoll 
 {
 public:
-    TcpEpoll();
-    ~TcpEpoll();
+    Epoll();
+    ~Epoll();
 
     bool init();
     void close();

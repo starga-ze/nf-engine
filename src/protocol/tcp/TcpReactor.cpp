@@ -37,7 +37,7 @@ TcpReactor::TcpReactor(int port, std::vector<std::unique_ptr<TcpWorker>>& tcpWor
     }
 
     m_txQueue = std::make_unique<MpscQueue>(TCP_MPSC_QUEUE_SIZE);
-    m_tcpEpoll = std::make_unique<TcpEpoll>();
+    m_tcpEpoll = std::make_unique<Epoll>();
 }
 
 TcpReactor::~TcpReactor()
