@@ -1,4 +1,4 @@
-#include "TcpEpoll.h"
+#include "Epoll.h"
 
 #include "util/Logger.h"
 
@@ -6,14 +6,14 @@
 #include <sys/eventfd.h>
 #include <errno.h>
 
-TcpEpoll::TcpEpoll() = default;
+Epoll::Epoll() = default;
 
-TcpEpoll::~TcpEpoll()
+Epoll::~Epoll()
 {
     close();
 }
 
-bool TcpEpoll::init()
+bool Epoll::init()
 {
     if (!createEpoll())
         return false;
@@ -25,7 +25,7 @@ bool TcpEpoll::init()
     return true;
 }
 
-bool TcpEpoll::createEpoll()
+bool Epoll::createEpoll()
 {
     m_epFd = ::epoll_create1(0);
     if (m_epFd < 0) {
@@ -35,7 +35,7 @@ bool TcpEpoll::createEpoll()
     return true;
 }
 
-bool TcpEpoll::createEventFd()
+bool Epoll::createEventFd()
 {
     m_eventFd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
     if (m_eventFd < 0) {
@@ -45,7 +45,7 @@ bool TcpEpoll::createEventFd()
     return true;
 }
 
-void TcpEpoll::close()
+void Epoll::close()
 {
     if (m_eventFd >= 0) {
         ::close(m_eventFd);
@@ -58,7 +58,7 @@ void TcpEpoll::close()
     }
 }
 
-bool TcpEpoll::add(int fd, uint32_t events)
+bool Epoll::add(int fd, uint32_t events)
 {
     epoll_event ev{};
     ev.events = events;
@@ -66,7 +66,7 @@ bool TcpEpoll::add(int fd, uint32_t events)
     return ::epoll_ctl(m_epFd, EPOLL_CTL_ADD, fd, &ev) == 0;
 }
 
-bool TcpEpoll::mod(int fd, uint32_t events)
+bool Epoll::mod(int fd, uint32_t events)
 {
     epoll_event ev{};
     ev.events = events;
@@ -74,24 +74,24 @@ bool TcpEpoll::mod(int fd, uint32_t events)
     return ::epoll_ctl(m_epFd, EPOLL_CTL_MOD, fd, &ev) == 0;
 }
 
-bool TcpEpoll::del(int fd)
+bool Epoll::del(int fd)
 {
     return ::epoll_ctl(m_epFd, EPOLL_CTL_DEL, fd, nullptr) == 0;
 }
 
-int TcpEpoll::wait(std::vector<epoll_event>& events, int timeoutMs)
+int Epoll::wait(std::vector<epoll_event>& events, int timeoutMs)
 {
     return ::epoll_wait(m_epFd, events.data(), 
             static_cast<int>(events.size()), timeoutMs);
 }
 
-void TcpEpoll::wakeup()
+void Epoll::wakeup()
 {
     uint64_t v = 1;
     ::write(m_eventFd, &v, sizeof(v));
 }
 
-void TcpEpoll::drainWakeup()
+void Epoll::drainWakeup()
 {
     uint64_t v;
     while (::read(m_eventFd, &v, sizeof(v)) > 0) {}

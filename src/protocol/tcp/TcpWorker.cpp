@@ -4,7 +4,7 @@
 #include "util/ThreadManager.h"
 #include "ingress/RxRouter.h"
 #include "packet/Packet.h"
-#include "protocol/tcp/TcpEpoll.h"
+#include "io/Epoll.h"
 
 #include <thread>
 #include <sys/epoll.h>
@@ -17,7 +17,7 @@ TcpWorker::TcpWorker(RxRouter* rxRouter, ThreadManager* threadManager, int id) :
     m_id(id)
 {
     m_rxQueue = std::make_unique<SpscQueue>(TCP_SPSC_QUEUE_SIZE);
-    m_rxEpoll = std::make_unique<TcpEpoll>();
+    m_rxEpoll = std::make_unique<Epoll>();
 }
 
 TcpWorker::~TcpWorker()

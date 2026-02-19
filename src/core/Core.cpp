@@ -20,6 +20,8 @@ void Core::setFlag(bool enableDb) {
 }
 
 void Core::run() {
+    initializeIpcServer();
+
     if (not initializeRuntime()) {
         return;
     }
@@ -45,6 +47,11 @@ void Core::shutdown() {
 
     LOG_INFO("All threads terminated successfully.");
     Logger::Shutdown();
+}
+
+void Core::initializeIpcServer()
+{
+    m_ipcServer = std::make_unique<IpcServer>("/run/nf-server/nf-server.sock");
 }
 
 bool Core::initializeRuntime() {
@@ -147,6 +154,9 @@ void Core::initializeEgress() {
 }
 
 void Core::startThreads() {
+    m_threadManager->addThread("ipc_server",
+            std::bind(&IpcServer::start, m_ipcServer.get()),
+            std::bind(&IpcServer::stop, m_ipcServer.get()));
     
     m_threadManager->addThread("tls_reactor",
                                std::bind(&TlsServer::start, m_tlsServer.get()),

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "protocol/tcp/TcpWorker.h"
-#include "protocol/tcp/TcpEpoll.h"
 #include "protocol/tcp/TcpConnection.h"
 #include "protocol/tcp/TcpFraming.h"
 
@@ -9,6 +8,8 @@
 #include "algorithm/MpscQueue.h"
 
 #include "packet/Packet.h"
+
+#include "io/Epoll.h"
 
 #include <unordered_map>
 #include <unordered_set>
@@ -46,7 +47,7 @@ private:
 
     std::vector<TcpWorker*> m_tcpWorkers;
     std::shared_ptr<TlsServer> m_tlsServer;
-    std::unique_ptr<TcpEpoll> m_tcpEpoll;
+    std::unique_ptr<Epoll> m_tcpEpoll;
 
     std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
 

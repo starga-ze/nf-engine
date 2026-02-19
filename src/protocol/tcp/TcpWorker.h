@@ -6,7 +6,7 @@
 #include <memory>
 #include <atomic>
 
-class TcpEpoll;
+class Epoll;
 class RxRouter;
 class Packet;
 class ThreadManager;
@@ -30,7 +30,7 @@ private:
     std::atomic<bool> m_running{false};
 
     std::unique_ptr<SpscQueue> m_rxQueue;
-    std::unique_ptr<TcpEpoll> m_rxEpoll;
+    std::unique_ptr<Epoll> m_rxEpoll;
 
     int m_id;
 };

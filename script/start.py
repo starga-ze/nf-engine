@@ -3,13 +3,14 @@ import sys
 import subprocess
 from script.utils import run_cmd, EXEC, CERT_DIR
 
-DAEMON_NAME = "nf-server"
-EXEC_INSTALL_PATH = f"/usr/bin/{DAEMON_NAME}"
+SERVICE_NAME = os.path.basename(EXEC)
+
+EXEC_INSTALL_PATH = f"/usr/bin/{SERVICE_NAME}"
 CERT_INSTALL_PATH = f"/etc/nf/cert"
-SERVICE_PATH = f"/etc/systemd/system/{DAEMON_NAME}.service"
+SERVICE_PATH = f"/etc/systemd/system/{SERVICE_NAME}.service"
 
 SERVICE_TEXT = f"""[Unit]
-Description=nf server service
+Description=nf-serverd service
 After=network-online.target
 Wants=network-online.target
 
@@ -22,8 +23,10 @@ User=root
 LimitNOFILE=65535
 StandardOutput=null
 StandardError=null
-SyslogIdentifier={DAEMON_NAME}
+SyslogIdentifier={SERVICE_NAME}
 LimitCORE=infinity
+RuntimeDirectory=nf-server
+RuntimeDirectoryMode=0755
 
 [Install]
 WantedBy=multi-user.target
@@ -57,7 +60,7 @@ def install_certs():
 
 
 def run():
-    print(f"[*] Installing and starting {DAEMON_NAME} service...")
+    print(f"[*] Installing and starting {EXEC} service...")
 
     if not os.path.isfile(EXEC):
         print(f"[*] Error: Built binary not found at: {EXEC}")
@@ -65,13 +68,13 @@ def run():
         sys.exit(1)
 
     status_result = subprocess.run(
-        ["systemctl", "is-active", "--quiet", DAEMON_NAME],
+        ["systemctl", "is-active", "--quiet", SERVICE_NAME],
         check=False,
         capture_output=True
     )
 
     if status_result.returncode == 0:
-        run_cmd(["systemctl", "stop", DAEMON_NAME], msg="Stopping currently running service")
+        run_cmd(["systemctl", "stop", SERVICE_NAME], msg="Stopping currently running service")
 
     run_cmd(["cp", EXEC, EXEC_INSTALL_PATH], msg="Copying binary to /usr/bin")
     run_cmd(["chmod", "755", EXEC_INSTALL_PATH])
@@ -87,8 +90,8 @@ def run():
         sys.exit(1)
 
     run_cmd(["systemctl", "daemon-reload"], msg="Reloading systemd")
-    run_cmd(["systemctl", "restart", DAEMON_NAME], msg="Starting or restarting service")
+    run_cmd(["systemctl", "restart", SERVICE_NAME], msg="Starting or restarting service")
 
-    subprocess.run(["systemctl", "status", DAEMON_NAME, "--no-pager"])
+    subprocess.run(["systemctl", "status", SERVICE_NAME, "--no-pager"])
 
     print("[*] Done, Service is active and running.")

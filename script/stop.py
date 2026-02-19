@@ -2,7 +2,7 @@ import os
 import subprocess
 from script.utils import run_cmd
 
-DAEMON_NAME = "nf-server"
+DAEMON_NAME = "nf-serverd"
 
 
 def run():
