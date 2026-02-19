@@ -4,10 +4,11 @@ import tarfile
 import os
 
 TARGET_ITEMS = [
-    'src',
+    'serverd',
+    'mgmtd',
 ]
 
-TAR_FILENAME = "nf-server.tar.gz"
+TAR_FILENAME = "nf-engine.tar.gz"
 
 
 def run():

@@ -1,22 +1,24 @@
-#include "ipc/UdsClient.h"
+#include "core/Core.h"
 #include "service/StatsService.h"
-#include "http/HttpServer.h"
-#include "util/Logger.h"
+#include "ipc/UdsClient.h"
 
+#include <memory>
 #include <iostream>
 
 int main() {
-    Logger::Init("nf-mgmtd", "/var/log/nf/mgmtd.log", 1048576 * 5, 100);
+    try {
+        auto ipcClient = std::make_shared<UdsClient>("/run/nf-server/nf-server.sock");
 
-    UdsClient ipc("/run/nf-server/nf-server.sock");
-    StatsService svc(ipc);
+        auto statsService = std::make_shared<StatsService>(ipcClient);
 
-    std::cout << "nf-mgmt service start...." << std::endl;    
+        Core core(8080, statsService);
 
-    HttpServer server(8080, svc);
-    server.run();
-
-    Logger::Shutdown();
+        core.run();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Fatal error: " << e.what() << std::endl;
+        return 1;
+    }
 
     return 0;
 }
