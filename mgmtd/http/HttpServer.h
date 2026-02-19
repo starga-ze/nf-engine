@@ -7,6 +7,8 @@ public:
     void run();
 
 private:
+    std::string loadFile(const std::string& path);
+
     int port_;
     StatsService& svc_;
 };

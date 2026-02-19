@@ -56,7 +56,7 @@ void Core::initializeIpcServer()
 
 bool Core::initializeRuntime() {
     ThreadManager::setName("main");
-    Logger::Init("nf-server", "/var/log/nf/nf-server.log", 1048576 * 5, 100);
+    Logger::Init("nf-server", "/var/log/nf/serverd.log", 1048576 * 5, 100);
 
     handleSignal();
 

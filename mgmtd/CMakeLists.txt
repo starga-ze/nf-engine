@@ -8,6 +8,10 @@ target_include_directories(nf-mgmtd PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_compile_definitions(nf-mgmtd PRIVATE
+    PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
+)
+
 target_link_libraries(nf-mgmtd PRIVATE
     spdlog::spdlog
     Threads::Threads

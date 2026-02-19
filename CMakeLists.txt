@@ -49,8 +49,7 @@ add_compile_options(
     -fdiagnostics-color=always
 )
 
-
 find_package(Threads REQUIRED)
 
-add_subdirectory(nf-server)
-add_subdirectory(nf-mgmt)
+add_subdirectory(serverd)
+add_subdirectory(mgmtd)
