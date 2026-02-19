@@ -115,6 +115,8 @@ void IpcServer::handleAccept()
         if (clientFd < 0)
             break;
 
+        setNonBlocking(clientFd);
+
         char buffer[1024];
         ::read(clientFd, buffer, sizeof(buffer));
 
