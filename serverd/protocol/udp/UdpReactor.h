@@ -4,10 +4,12 @@
 #include <atomic>
 #include <vector>
 
+#include "algorithm/MpscQueue.h"
 #include "packet/Packet.h"
 
+#include "io/Epoll.h"
+
 class UdpWorker;
-class Epoll;
 class MpscQueue;
 
 class UdpReactor

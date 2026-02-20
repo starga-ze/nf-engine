@@ -1,9 +1,8 @@
 #include "UdpReactor.h"
 
 #include "protocol/udp/UdpWorker.h"
+
 #include "util/Logger.h"
-#include "io/Epoll.h"
-#include "algorithm/MpscQueue.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -15,10 +14,12 @@
 #define UDP_RECV_CHUNK_SIZE         (4096)
 #define UDP_MAX_EVENTS              (64)
 #define UDP_MAX_RX_BUFFER_SIZE      (65536) // 64KB
-#define UDP_MPSC_QUEUE_SIZE         (65536)
+#define UDP_MPSC_QUEUE_SIZE         (65536) // 64K Slot
 
-UdpReactor::UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWorkers)
-    : m_port(port)
+UdpReactor::UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWorkers) : 
+    m_port(port),
+    m_txQueue(std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE)),
+    m_udpEpoll(std::make_unique<Epoll>())
 {
     m_udpWorkers.reserve(udpWorkers.size());
 
@@ -32,9 +33,6 @@ UdpReactor::UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWor
     {
         m_udpWorkers.push_back(worker.get());
     }
-
-    m_txQueue = std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE);
-    m_udpEpoll = std::make_unique<Epoll>();
 }
 
 UdpReactor::~UdpReactor()
