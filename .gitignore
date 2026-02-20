@@ -2,6 +2,7 @@ build/
 build-*/
 cmake-build-*/
 
+3rd_party/
 backup/
 tmp/
 
