@@ -1,16 +1,14 @@
 #pragma once
 
+#include <memory>
+#include <atomic>
+#include <vector>
+
 #include "packet/Packet.h"
 
-#include <atomic>
-#include <deque>
-#include <mutex>
-#include <vector>
-#include <memory>
-#include <netinet/in.h>
-
 class UdpWorker;
-class UdpEpoll;
+class Epoll;
+class MpscQueue;
 
 class UdpReactor
 {
@@ -29,28 +27,25 @@ private:
     bool setSockOpt();
     bool bindSocket();
     bool setNonBlocking(int fd);
-    void shutdown();
 
     void receivePackets();
-    void snapshotPendingTx();
-    void flushAllPending(size_t budgetItems);
-    size_t flushPending(size_t budgetItems);
+    void processTxQueue();
+    void flushPacket(std::unique_ptr<Packet>& pkt);
+
+    void shutdown();
 
 private:
-    int m_port{0};
-    UdpWorker* m_udpWorker{nullptr};
-
-    std::unique_ptr<UdpEpoll> m_udpEpoll;
-
+    int m_port;
     int m_sockFd{-1};
+
     sockaddr_in m_serverAddr{};
+    std::vector<uint8_t> m_rxBuffer;
+
+    UdpWorker* m_udpWorker;
 
     std::atomic<bool> m_running{false};
 
-    std::vector<uint8_t> m_rxBuffer;
+    std::unique_ptr<Epoll> m_udpEpoll;
 
-    std::mutex m_pendingTxLock;
-    std::deque<std::unique_ptr<Packet>> m_pendingTx;
-    std::deque<std::unique_ptr<Packet>> m_snapshotTx;
+    std::unique_ptr<MpscQueue> m_txQueue;
 };
-

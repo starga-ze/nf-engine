@@ -3,9 +3,12 @@
 #include "protocol/udp/UdpWorker.h"
 #include "protocol/udp/UdpReactor.h"
 
-UdpServer::UdpServer(int port, RxRouter* rxRouter, int workerCount, ThreadManager* threadManager)
+UdpServer::UdpServer(int port, RxRouter* rxRouter, int worker, ThreadManager* threadManager)
 {
-    m_udpWorker  = std::make_unique<UdpWorker>(rxRouter, workerCount, threadManager);
+    for (int i = 0; i < worker; ++i)
+    {
+        m_udpWorker  = std::make_unique<UdpWorker>(rxRouter, threadManager, i);
+    }
     m_udpReactor = std::make_unique<UdpReactor>(port, m_udpWorker.get());
 }
 

@@ -12,7 +12,7 @@ class UdpReactor;
 class UdpServer
 {
 public:
-    UdpServer(int port, RxRouter* rxRouter, int workerCount, ThreadManager* threadManager);
+    UdpServer(int port, RxRouter* rxRouter, int worker, ThreadManager* threadManager);
     ~UdpServer();
 
     void start();
