@@ -2,18 +2,15 @@
 
 #include "protocol/tls/TlsWorker.h"
 #include "protocol/tls/TlsReactor.h"
-#include "protocol/tls/TlsHandover.h"
 
 TlsServer::TlsServer(SSL_CTX* ctx, RxRouter* rxRouter, int workerCount, ThreadManager* threadManager)
 {
-    m_handover = std::make_shared<TlsHandover>();
-
     for (int i = 0; i < workerCount; ++i)
     {
         m_tlsWorkers.emplace_back(std::make_unique<TlsWorker>(rxRouter, threadManager, i));
     }
 
-    m_tlsReactor = std::make_unique<TlsReactor>(ctx, m_tlsWorkers, m_handover);
+    m_tlsReactor = std::make_unique<TlsReactor>(ctx, m_tlsWorkers);
 }
 
 TlsServer::~TlsServer()

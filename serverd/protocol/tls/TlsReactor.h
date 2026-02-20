@@ -2,6 +2,7 @@
 
 #include "protocol/tls/TlsWorker.h"
 
+#include "algorithm/LockQueue.h"
 #include "algorithm/MpscQueue.h"
 #include "io/Epoll.h"
 
@@ -16,14 +17,18 @@
 
 class Packet;
 class TlsConnection;
-class TlsHandover;
+
+struct TlsHandoverItem
+{
+    int fd;
+    std::pair<sockaddr_in, sockaddr_in> connInfo;
+};
 
 class TlsReactor
 {
 public:
     TlsReactor(SSL_CTX* ctx,
-               std::vector<std::unique_ptr<TlsWorker>>& tlsWorkers,
-               std::shared_ptr<TlsHandover> handover);
+               std::vector<std::unique_ptr<TlsWorker>>& tlsWorkers);
 
     ~TlsReactor();
 
@@ -55,12 +60,13 @@ private:
 
     SSL_CTX* m_ctx;
     std::vector<TlsWorker*> m_tlsWorkers;
-    std::shared_ptr<TlsHandover> m_handover;
 
     std::unique_ptr<Epoll> m_epoll;
     std::unique_ptr<MpscQueue> m_txQueue;
 
     std::unordered_map<int, std::unique_ptr<TlsConnection>> m_conns;
+
+    LockQueue<TlsHandoverItem> m_handoverQueue;
 
     std::atomic<bool> m_running{false};
 };

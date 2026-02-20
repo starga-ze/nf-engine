@@ -13,7 +13,6 @@
 class Packet;
 class TlsWorker;
 class TlsReactor;
-class TlsHandover;
 
 class TlsServer
 {
@@ -31,5 +30,4 @@ public:
 private:
     std::vector<std::unique_ptr<TlsWorker>> m_tlsWorkers;
     std::unique_ptr<TlsReactor> m_tlsReactor;
-    std::shared_ptr<TlsHandover> m_handover;
 };

@@ -27,7 +27,7 @@ public:
     const sockaddr_in& peerAddr() const;
 
     ByteRingBuffer& rxRing();
-    std::deque<std::unique_ptr<Packet>>& txQ();
+    std::deque<std::unique_ptr<Packet>>& txQueue();
 
 private:
     int m_fd;

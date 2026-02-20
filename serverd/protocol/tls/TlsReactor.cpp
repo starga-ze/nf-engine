@@ -2,7 +2,6 @@
 
 #include "protocol/tls/TlsConnection.h"
 #include "protocol/tls/TlsFraming.h"
-#include "protocol/tls/TlsHandover.h"
 #include "protocol/tls/TlsHandshake.h"
 
 #include "packet/Packet.h"
@@ -22,10 +21,9 @@
 #define TLS_MPSC_QUEUE_SIZE (65536)
 
 TlsReactor::TlsReactor(SSL_CTX* ctx,
-                       std::vector<std::unique_ptr<TlsWorker>>& tlsWorkers,
-                       std::shared_ptr<TlsHandover> handover) :
+                       std::vector<std::unique_ptr<TlsWorker>>& tlsWorkers) :
     m_ctx(ctx),
-    m_handover(handover)
+    m_handoverQueue(4096)
 {
     m_tlsWorkers.reserve(tlsWorkers.size());
     for (const auto& w : tlsWorkers)
@@ -132,7 +130,12 @@ void TlsReactor::handover(int fd, std::pair<sockaddr_in, sockaddr_in> connInfo)
         return;
     }
 
-    m_handover->push(fd, connInfo);
+    if (!m_handoverQueue.push(TlsHandoverItem{fd, connInfo}))
+    {
+        ::close(fd);
+        return;
+    }
+
     m_epoll->wakeup();
 }
 
@@ -161,14 +164,11 @@ void TlsReactor::processWakeup()
 
 void TlsReactor::processHandover()
 {
-    std::queue<TlsHandoverItem> q;
-    m_handover->popAll(q);
+    std::vector<TlsHandoverItem> items;
+    m_handoverQueue.popAll(items);
 
-    while (!q.empty())
+    for (auto& item : items)
     {
-        auto item = q.front();
-        q.pop();
-
         int fd = item.fd;
 
         SSL* ssl = SSL_new(m_ctx);
@@ -209,7 +209,7 @@ void TlsReactor::processTxQueue()
             continue;
         }
 
-        it->second->txQ().push_back(std::move(pkt));
+        it->second->txQueue().push_back(std::move(pkt));
         dirtyFds.insert(fd);
     }
 
@@ -386,7 +386,7 @@ void TlsReactor::flushTx(int fd, size_t budget)
 
     auto& conn = it->second;
     SSL* ssl = conn->ssl();
-    auto& q = conn->txQ();
+    auto& q = conn->txQueue();
 
     size_t used = 0;
 
@@ -449,7 +449,7 @@ void TlsReactor::updateInterest(int fd)
         return;
     }
 
-    if (!it->second->txQ().empty())
+    if (!it->second->txQueue().empty())
     {
         ev |= EPOLLOUT;
     }

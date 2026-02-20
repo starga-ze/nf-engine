@@ -45,7 +45,7 @@ ByteRingBuffer& TlsConnection::rxRing()
     return m_rxRing;
 }
 
-std::deque<std::unique_ptr<Packet>>& TlsConnection::txQ()
+std::deque<std::unique_ptr<Packet>>& TlsConnection::txQueue()
 {
     return m_txQueue;
 }
