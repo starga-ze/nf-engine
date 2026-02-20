@@ -2,8 +2,14 @@ build/
 build-*/
 cmake-build-*/
 
+# 1. 3rd_party 내부의 모든 것(파일/폴더)을 무시하되
 /3rd_party/**
+
+# 2. 3rd_party 폴더 자체와 그 하위 폴더 구조는 무시에서 제외 (길 열어주기)
 !/3rd_party/
+!/3rd_party/**/
+
+# 3. 그 폴더들 안에 있는 README.md와 .gitkeep만 추적 허용
 !/3rd_party/**/README.md
 
 backup/
