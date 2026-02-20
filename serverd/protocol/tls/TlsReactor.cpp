@@ -132,6 +132,7 @@ void TlsReactor::handover(int fd, std::pair<sockaddr_in, sockaddr_in> connInfo)
 
     if (!m_handoverQueue.push(TlsHandoverItem{fd, connInfo}))
     {
+        LOG_WARN("TlsReactor handover queue full, dropping fd={}", fd);
         ::close(fd);
         return;
     }
@@ -345,6 +346,8 @@ void TlsReactor::receive(int fd)
                 size_t rb = rxRing.read(payload.data(), frameLen);
                 if (rb != frameLen)
                 {
+                    LOG_ERROR("Frame read mismatch, fd={}, expected={}, actual={}, readable={}",
+                            fd, frameLen, rb, rxRing.readable());
                     closeConnection(fd);
                     return;
                 }
