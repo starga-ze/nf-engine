@@ -152,8 +152,7 @@ def install_boost():
 
 
 def install_json():
-    # 설치 여부 확인 (nlohmann_jsonConfig.cmake 파일 존재 여부로 판단)
-    config_check = os.path.join(JSON_INSTALL, "lib", "cmake", "nlohmann_json", "nlohmann_jsonConfig.cmake")
+    config_check = os.path.join(JSON_INSTALL, "share", "cmake", "nlohmann_json", "nlohmann_jsonConfig.cmake")
     if os.path.exists(config_check):
         print("[*] nlohmann_json already installed, skipping...")
         return
@@ -161,18 +160,14 @@ def install_json():
     os.makedirs(JSON_DIR, exist_ok=True)
     os.makedirs(JSON_INSTALL, exist_ok=True)
 
-    # 1. 다운로드
     if not os.path.exists(JSON_TAR):
         print(f"[*] Downloading nlohmann_json {JSON_VERSION}...")
-        # 소스 코드가 포함된 전체 tar.gz를 받습니다.
         url = f"https://github.com/nlohmann/json/archive/refs/tags/v{JSON_VERSION}.tar.gz"
         run_cmd(["wget", url, "-O", JSON_TAR], msg="Downloading nlohmann_json")
 
-    # 2. 압축 해제
     if not os.path.exists(JSON_SRC_PATH):
         run_cmd(["tar", "xvf", JSON_TAR, "-C", JSON_DIR], cwd=JSON_DIR, msg="Extracting nlohmann_json")
 
-    # 3. CMake 빌드 및 설치 (헤더를 복사하고 CMake 설정 파일을 생성함)
     build_dir = os.path.join(JSON_SRC_PATH, "build_temp")
     os.makedirs(build_dir, exist_ok=True)
 
@@ -180,7 +175,7 @@ def install_json():
         "cmake",
         "..",
         f"-DCMAKE_INSTALL_PREFIX={JSON_INSTALL}",
-        "-DJSON_BuildTests=OFF"  # 테스트 빌드 제외 (시간 단축)
+        "-DJSON_BuildTests=OFF"
     ], cwd=build_dir, msg="Configuring nlohmann_json")
 
     run_cmd(["make", "install"], cwd=build_dir, msg="Installing nlohmann_json")
@@ -281,7 +276,6 @@ def install_build_essential():
             print(f"[ERROR] build tools install failed: {cmd}\n{e}")
             sys.exit(1)
 
-    # 최종 검증
     for tool in required_tools:
         if shutil.which(tool) is None:
             print(f"[ERROR] Required tool '{tool}' not found after installation.")
