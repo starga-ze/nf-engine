@@ -6,8 +6,9 @@ import shutil
 from script.utils import (
     ROOT_DIR, INSTALL_ROOT, NUM_CORES, MAKE_JOBS, run_cmd,
     OPENSSL_VERSION, OPENSSL_DIR, OPENSSL_INSTALL, OPENSSL_TAR, OPENSSL_SRC_PATH,
-    SPDLOG_DIR, SPDLOG_INSTALL,
+    SPDLOG_VERSION, SPDLOG_DIR, SPDLOG_INSTALL, SPDLOG_TAR, SPDLOG_SRC_PATH,
     BOOST_VERSION, BOOST_VERSION_UNDERSCORE, BOOST_DIR, BOOST_INSTALL, BOOST_TAR, BOOST_SRC_PATH,
+    JSON_VERSION, JSON_DIR, JSON_INSTALL, JSON_TAR, JSON_SRC_PATH,
 )
 
 
@@ -73,8 +74,6 @@ def install_spdlog():
             cwd=SPDLOG_DIR,
             msg="Extracting spdlog source"
         )
-
-        os.remove(SPDLOG_TAR)
 
     build_dir = os.path.join(SPDLOG_SRC_PATH, "build_temp")
     os.makedirs(build_dir, exist_ok=True)
@@ -150,6 +149,43 @@ def install_boost():
     )
 
     print("[*] Boost installation complete.")
+
+
+def install_json():
+    # 설치 여부 확인 (nlohmann_jsonConfig.cmake 파일 존재 여부로 판단)
+    config_check = os.path.join(JSON_INSTALL, "lib", "cmake", "nlohmann_json", "nlohmann_jsonConfig.cmake")
+    if os.path.exists(config_check):
+        print("[*] nlohmann_json already installed, skipping...")
+        return
+
+    os.makedirs(JSON_DIR, exist_ok=True)
+    os.makedirs(JSON_INSTALL, exist_ok=True)
+
+    # 1. 다운로드
+    if not os.path.exists(JSON_TAR):
+        print(f"[*] Downloading nlohmann_json {JSON_VERSION}...")
+        # 소스 코드가 포함된 전체 tar.gz를 받습니다.
+        url = f"https://github.com/nlohmann/json/archive/refs/tags/v{JSON_VERSION}.tar.gz"
+        run_cmd(["wget", url, "-O", JSON_TAR], msg="Downloading nlohmann_json")
+
+    # 2. 압축 해제
+    if not os.path.exists(JSON_SRC_PATH):
+        run_cmd(["tar", "xvf", JSON_TAR, "-C", JSON_DIR], cwd=JSON_DIR, msg="Extracting nlohmann_json")
+
+    # 3. CMake 빌드 및 설치 (헤더를 복사하고 CMake 설정 파일을 생성함)
+    build_dir = os.path.join(JSON_SRC_PATH, "build_temp")
+    os.makedirs(build_dir, exist_ok=True)
+
+    run_cmd([
+        "cmake",
+        "..",
+        f"-DCMAKE_INSTALL_PREFIX={JSON_INSTALL}",
+        "-DJSON_BuildTests=OFF"  # 테스트 빌드 제외 (시간 단축)
+    ], cwd=build_dir, msg="Configuring nlohmann_json")
+
+    run_cmd(["make", "install"], cwd=build_dir, msg="Installing nlohmann_json")
+
+    print("[*] nlohmann_json installation complete.")
 
 def get_gpp_version():
     try:
@@ -260,6 +296,7 @@ def run():
     install_openssl()
     install_spdlog()
     install_boost()
+    install_json()
     install_gcc9()
     install_unixodbc()
     print("[*] All dependencies installed successfully.")

@@ -15,5 +15,7 @@ target_compile_definitions(nf-mgmtd PRIVATE
 target_link_libraries(nf-mgmtd PRIVATE
     spdlog::spdlog
     Threads::Threads
+    Boost::boost
+    nlohmann_json::nlohmann_json
 )
 
