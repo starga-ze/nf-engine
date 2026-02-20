@@ -6,47 +6,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(THIRD_PARTY_INSTALL_DIR "${CMAKE_SOURCE_DIR}/3rd_party/install")
+
+set(OPENSSL_ROOT_DIR "${THIRD_PARTY_INSTALL_DIR}/openssl")
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+set(OPENSSL_CRYPTO_LIBRARY "${OPENSSL_ROOT_DIR}/lib64/libcrypto.a")
+set(OPENSSL_SSL_LIBRARY "${OPENSSL_ROOT_DIR}/lib64/libssl.a")
+set(OPENSSL_INCLUDE_DIR "${OPENSSL_ROOT_DIR}/include")
+
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/spdlog)
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/openssl)
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/boost)
 list(APPEND CMAKE_PREFIX_PATH ${THIRD_PARTY_INSTALL_DIR}/nlohmann_json)
 
 find_package(spdlog REQUIRED)
-
-find_library(CRYPTO_LIBRARY NAMES crypto
-        PATHS ${THIRD_PARTY_INSTALL_DIR}/openssl/lib64 ${THIRD_PARTY_INSTALL_DIR}/openssl/lib
-        NO_DEFAULT_PATH)
-
-find_library(SSL_LIBRARY NAMES ssl
-        PATHS ${THIRD_PARTY_INSTALL_DIR}/openssl/lib64 ${THIRD_PARTY_INSTALL_DIR}/openssl/lib
-        NO_DEFAULT_PATH)
-
-find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h
-        PATHS ${THIRD_PARTY_INSTALL_DIR}/openssl/include
-        NO_DEFAULT_PATH)
-
-if (NOT CRYPTO_LIBRARY OR NOT SSL_LIBRARY OR NOT OPENSSL_INCLUDE_DIR)
-    message(FATAL_ERROR "
-        [ERROR] OpenSSL/spdlog pre-installed libraries not found. 
-        Please run the manual installation steps first to populate 
-        the '3rd_party/install' directory.
-    ")
-endif ()
-
-add_library(OpenSSL::SSL UNKNOWN IMPORTED)
-set_target_properties(OpenSSL::SSL PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
-        IMPORTED_LOCATION "${SSL_LIBRARY}"
-)
-
-add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
-set_target_properties(OpenSSL::Crypto PROPERTIES
-        INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
-        IMPORTED_LOCATION "${CRYPTO_LIBRARY}"
-)
-
+find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED)
-
 find_package(nlohmann_json REQUIRED)
 
 add_compile_options(
