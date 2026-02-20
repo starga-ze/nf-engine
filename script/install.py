@@ -76,7 +76,7 @@ def install_boost():
     header_check = os.path.join(BOOST_INSTALL, "include", "boost", "asio.hpp")
 
     if os.path.exists(header_check):
-        print("[*] Boost already installed, skipping...")
+        print("[*] Boost already built and installed, skipping...")
         return
 
     os.makedirs(BOOST_DIR, exist_ok=True)
@@ -110,7 +110,7 @@ def install_boost():
     run_cmd(
         [
             "./b2",
-            MAKE_JOBS,
+            f"-j{NUM_CORES}",
             "variant=release",
             "link=static",
             "threading=multi",

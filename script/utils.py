@@ -24,8 +24,8 @@ SPDLOG_INSTALL = os.path.join(INSTALL_ROOT, "spdlog")
 
 BOOST_VERSION = "1.84.0"
 BOOST_VERSION_UNDERSCORE = BOOST_VERSION.replace(".", "_")
-BOOST_DIR = os.path.join(INSTALL_ROOT, "boost")
-BOOST_INSTALL = os.path.join(BOOST_DIR, "install")
+BOOST_DIR = os.path.join(ROOT_DIR, "3rd_party", "boost")
+BOOST_INSTALL = os.path.join(INSTALL_ROOT, "install")
 BOOST_TAR = os.path.join(BOOST_DIR, f"boost_{BOOST_VERSION_UNDERSCORE}.tar.gz")
 BOOST_SRC_PATH = os.path.join(BOOST_DIR, f"boost_{BOOST_VERSION_UNDERSCORE}")
 

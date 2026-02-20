@@ -5,15 +5,13 @@ cmake-build-*/
 backup/
 
 tmp/
+
 *.tar.gz
 *.log
 
 3rd_party/install/
-3rd_party/**/build/
-3rd_party/**/dist/
-
-3rd_party/openssl/*.tar.gz
-3rd_party/boost/*.tar.gz
+3rd_party/openssl/
+3rd_party/boost/
 
 .vscode/
 .idea/
