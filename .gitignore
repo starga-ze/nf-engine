@@ -2,8 +2,9 @@ build/
 build-*/
 cmake-build-*/
 
-/3rd_party/*
-!/3rd_party/README.md
+/3rd_party/**
+!/3rd_party/
+!/3rd_party/**/README.md
 
 backup/
 tmp/
