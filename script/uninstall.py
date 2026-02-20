@@ -2,7 +2,9 @@ import os
 import shutil
 
 from script.utils import (
-    INSTALL_ROOT, OPENSSL_TAR, OPENSSL_SRC_PATH, BUILD_DIR
+    INSTALL_ROOT, BUILD_DIR,
+    OPENSSL_TAR, OPENSSL_SRC_PATH,
+    BOOST_TAR, BOOST_SRC_PATH,
 )
 
 
@@ -31,6 +33,13 @@ def uninstall_dependencies():
         os.remove(OPENSSL_TAR)
         print(f"[*] Uninstall: OpenSSL tarball '{OPENSSL_TAR}' removed.")
 
+    if os.path.exists(BOOST_SRC_PATH):
+        shutil.rmtree(BOOST_SRC_PATH)
+        print(f"[*] Removed Boost source '{BOOST_SRC_PATH}'.")
+
+    if os.path.exists(BOOST_TAR):
+        os.remove(BOOST_TAR)
+        print(f"[*] Removed Boost tarball '{BOOST_TAR}'.")
 
 def run():
     uninstall_dependencies()

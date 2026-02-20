@@ -6,7 +6,8 @@ import shutil
 from script.utils import (
     ROOT_DIR, INSTALL_ROOT, NUM_CORES, MAKE_JOBS, run_cmd,
     OPENSSL_VERSION, OPENSSL_DIR, OPENSSL_INSTALL, OPENSSL_TAR, OPENSSL_SRC_PATH,
-    SPDLOG_DIR, SPDLOG_INSTALL
+    SPDLOG_DIR, SPDLOG_INSTALL,
+    BOOST_VERSION, BOOST_VERSION_UNDERSCORE, BOOST_DIR, BOOST_INSTALL, BOOST_TAR, BOOST_SRC_PATH,
 )
 
 
@@ -70,6 +71,59 @@ def install_spdlog():
     shutil.rmtree(spdlog_build_dir)
     print("[*] spdlog installation complete.")
 
+
+def install_boost():
+    header_check = os.path.join(BOOST_INSTALL, "include", "boost", "asio.hpp")
+
+    if os.path.exists(header_check):
+        print("[*] Boost already installed, skipping...")
+        return
+
+    os.makedirs(BOOST_DIR, exist_ok=True)
+    os.makedirs(BOOST_INSTALL, exist_ok=True)
+
+    if not os.path.exists(BOOST_TAR):
+        print(f"[*] Downloading Boost {BOOST_VERSION}...")
+        subprocess.run(
+            [
+                "wget",
+                f"https://archives.boost.io/release/{BOOST_VERSION}/source/boost_{BOOST_VERSION_UNDERSCORE}.tar.gz",
+                "-O",
+                BOOST_TAR
+            ],
+            check=True
+        )
+
+    if not os.path.exists(BOOST_SRC_PATH):
+        run_cmd(
+            ["tar", "xvf", BOOST_TAR, "-C", BOOST_DIR],
+            cwd=BOOST_DIR,
+            msg="Extracting Boost source"
+        )
+
+    run_cmd(
+        ["./bootstrap.sh", f"--prefix={BOOST_INSTALL}"],
+        cwd=BOOST_SRC_PATH,
+        msg="Bootstrapping Boost"
+    )
+
+    run_cmd(
+        [
+            "./b2",
+            MAKE_JOBS,
+            "variant=release",
+            "link=static",
+            "threading=multi",
+            "runtime-link=static",
+            "--with-system",
+            "--with-thread",
+            "install"
+        ],
+        cwd=BOOST_SRC_PATH,
+        msg="Building Boost (system + thread)"
+    )
+
+    print("[*] Boost installation complete.")
 
 def get_gpp_version():
     try:
@@ -179,6 +233,7 @@ def run():
     install_build_essential()
     install_openssl()
     install_spdlog()
+    install_boost()
     install_gcc9()
     install_unixodbc()
     print("[*] All dependencies installed successfully.")

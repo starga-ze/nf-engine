@@ -13,6 +13,7 @@ tmp/
 3rd_party/**/dist/
 
 3rd_party/openssl/*.tar.gz
+3rd_party/boost/*.tar.gz
 
 .vscode/
 .idea/
@@ -20,3 +21,8 @@ tmp/
 
 .DS_Store
 
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
