@@ -9,7 +9,7 @@ UdpServer::UdpServer(int port, RxRouter* rxRouter, int worker, ThreadManager* th
     {
         m_udpWorkers.emplace_back(std::make_unique<UdpWorker>(rxRouter, threadManager, i));
     }
-    m_udpReactor = std::make_unique<UdpReactor>(port, m_udpWorker.get());
+    m_udpReactor = std::make_unique<UdpReactor>(port, m_udpWorkers);
 }
 
 UdpServer::~UdpServer()
@@ -19,19 +19,29 @@ UdpServer::~UdpServer()
 
 void UdpServer::start()
 {
-    m_udpWorker->start();
+    for (auto& worker : m_udpWorkers)
+    {
+        worker->start();
+    }
     m_udpReactor->start();
 }
 
 void UdpServer::stop()
 {
-    if (m_udpReactor) m_udpReactor->stop();
-    if (m_udpWorker)  m_udpWorker->stop();
+    m_udpReactor->stop();
+    for (auto& worker : m_udpWorkers)
+    {
+        worker->stop();
+    }
 }
 
 void UdpServer::enqueueTx(std::unique_ptr<Packet> pkt)
 {
-    if (not m_udpReactor) return;
+    if (not m_udpReactor)
+    {
+        return;
+    }
+
     m_udpReactor->enqueueTx(std::move(pkt));
 }
 

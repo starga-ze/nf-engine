@@ -15,8 +15,11 @@ TcpFraming::tryExtractFrame(const ByteRingBuffer& rxRing, size_t& outFrameLen)
         return TcpFramingResult::NeedMoreData;
     }
 
+    uint8_t headerBuf[TCP_HEADER_SIZE];
+    rxRing.peek(headerBuf, TCP_HEADER_SIZE);
+
     CommonPacketHeader hdr{};
-    std::memcpy(&hdr, rxRing.readPtr(), TCP_HEADER_SIZE);
+    std::memcpy(&hdr, headerBuf, TCP_HEADER_SIZE);
 
     uint16_t bodyLen = ntohs(hdr.bodyLen);
 

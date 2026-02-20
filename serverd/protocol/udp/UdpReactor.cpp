@@ -17,12 +17,24 @@
 #define UDP_MAX_RX_BUFFER_SIZE      (65536) // 64KB
 #define UDP_MPSC_QUEUE_SIZE         (65536)
 
-UdpReactor::UdpReactor(int port, UdpWorker* udpWorker)
-    : m_port(port),
-      m_udpWorker(udpWorker)
+UdpReactor::UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWorkers)
+    : m_port(port)
 {
+    m_udpWorkers.reserve(udpWorkers.size());
+
+    if (udpWorkers.empty())
+    {
+        LOG_FATAL("UdpReactor requires at at leat one UdpWorker");
+        std::abort();
+    }
+
+    for (const auto& worker : udpWorkers)
+    {
+        m_udpWorkers.push_back(worker.get());
+    }
+
+    m_txQueue = std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE);
     m_udpEpoll = std::make_unique<Epoll>();
-    m_txQueue  = std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE);
 }
 
 UdpReactor::~UdpReactor()
@@ -173,7 +185,10 @@ void UdpReactor::receivePackets()
                 m_serverAddr
             );
 
-            m_udpWorker->enqueueRx(std::move(pkt));
+            uint32_t key = ntohl(clientAddr.sin_addr.s_addr) ^ ntohs(clientAddr.sin_port);
+            size_t idx = key % m_udpWorkers.size();
+
+            m_udpWorkers[idx]->enqueueRx(std::move(pkt));
             continue;
         }
 

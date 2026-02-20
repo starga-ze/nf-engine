@@ -89,6 +89,19 @@ size_t ByteRingBuffer::read(uint8_t* out, size_t len)
     return readBytes;
 }
 
+size_t ByteRingBuffer::peek(uint8_t* out, size_t len) const
+{
+    size_t toRead = std::min(len, m_size);
+
+    size_t first = std::min(toRead, m_buffer.size() - m_head);
+    std::memcpy(out, &m_buffer[m_head], first);
+
+    if (toRead > first)
+        std::memcpy(out + first, &m_buffer[0], toRead - first);
+
+    return toRead;
+}
+
 void ByteRingBuffer::clear()
 {
     m_head = 0;

@@ -23,6 +23,8 @@ public:
     size_t write(const uint8_t* data, size_t len);
     size_t read(uint8_t* out, size_t len);
 
+    size_t peek(uint8_t* out, size_t len) const;
+
     void clear();
 
 private:

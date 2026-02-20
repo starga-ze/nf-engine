@@ -13,7 +13,7 @@ class MpscQueue;
 class UdpReactor
 {
 public:
-    UdpReactor(int port, UdpWorker* udpWorker);
+    UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWorkers);
     ~UdpReactor();
 
     void start();
@@ -41,7 +41,7 @@ private:
     sockaddr_in m_serverAddr{};
     std::vector<uint8_t> m_rxBuffer;
 
-    UdpWorker* m_udpWorker;
+    std::vector<UdpWorker*> m_udpWorkers;
 
     std::atomic<bool> m_running{false};
 
