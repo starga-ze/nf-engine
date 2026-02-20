@@ -11,15 +11,14 @@ Core::Core(int port, std::shared_ptr<StatsService> svc)
 {
 }
 
-void Core::run() {
+void Core::run() 
+{
     m_httpServer = std::make_shared<HttpServer>(m_port, m_statsService);
 
-    const size_t nThreads = std::max<size_t>(2, std::thread::hardware_concurrency());
+    const size_t nThreads = 4;
 
-    m_threadManager->start(nThreads, [this]() {
-        m_httpServer->run();
-    });
-
+    m_threadManager->start(nThreads, std::bind(&HttpServer::run, m_httpServer.get()));
+            
     m_threadManager->join();
 }
 

@@ -9,19 +9,18 @@ HttpSession::HttpSession(
 {
 }
 
-void HttpSession::run() {
+void HttpSession::run() 
+{
     doRead();
 }
 
-void HttpSession::doRead() {
+void HttpSession::doRead() 
+{
     m_req = {};
-    http::async_read(
-        m_socket, m_buffer, m_req,
-        [self = shared_from_this()]
-        (auto ec, auto bytes)
-        {
-            self->onRead(ec, bytes);
-        });
+    http::async_read(m_socket, m_buffer, m_req, [self = shared_from_this()](auto ec, auto bytes)
+    {
+        self->onRead(ec, bytes);
+    });
 }
 
 void HttpSession::onRead(
@@ -36,30 +35,17 @@ void HttpSession::onRead(
     auto res = m_router->handle(m_req);
     bool close = res.need_eof();
 
-    m_resHolder =
-        std::make_shared<http::response<
-            http::string_body>>(std::move(res));
+    m_resHolder = std::make_shared<http::response<http::string_body>>(std::move(res));
 
-    auto& resRef =
-        *static_cast<
-            http::response<
-                http::string_body>*>(
-                    m_resHolder.get());
+    auto& resRef = *static_cast<http::response<http::string_body>*>(m_resHolder.get());
 
-    http::async_write(
-        m_socket,
-        resRef,
-        [self = shared_from_this(),
-         close](auto ec, auto bytes)
-        {
-            self->onWrite(close, ec, bytes);
-        });
+    http::async_write(m_socket, resRef, [self = shared_from_this(), close](auto ec, auto bytes)
+    {
+        self->onWrite(close, ec, bytes);
+    });
 }
 
-void HttpSession::onWrite(
-    bool close,
-    beast::error_code ec,
-    std::size_t)
+void HttpSession::onWrite(bool close, beast::error_code ec, std::size_t)
 {
     if (ec)
         return;
@@ -71,9 +57,9 @@ void HttpSession::onWrite(
     doRead();
 }
 
-void HttpSession::doClose() {
+void HttpSession::doClose() 
+{
     beast::error_code ec;
-    m_socket.shutdown(
-        tcp::socket::shutdown_send, ec);
+    m_socket.shutdown(tcp::socket::shutdown_send, ec);
 }
 
