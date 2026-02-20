@@ -119,7 +119,9 @@ def run():
     enable_services()
     restart_server()
 
-    subprocess.run(["systemctl", "status", "nf-serverd", "--no-pager"])
+    subprocess.run(["systemctl", "status", "nf-serverd", "-n", "0", "--no-pager"])
+
+    subprocess.run(["systemctl", "status", "nf-mgmtd", "-n", "0", "--no-pager"])
 
     print("[*] Done. Services are running.")
 

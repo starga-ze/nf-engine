@@ -20,6 +20,8 @@ def run():
 
     run_cmd(["systemctl", "stop", DAEMON_NAME], msg=f"{DAEMON_NAME} service stopped")
 
-    subprocess.run(["systemctl", "status", DAEMON_NAME, "--no-pager"])
+    subprocess.run(["systemctl", "status", DAEMON_NAME, "-n", "0", "--no-pager"])
+
+    subprocess.run(["systemctl", "status", "nf-mgmtd", "-n", "0", "--no-pager"])
 
     print("[*] Done. Stop services successfully..")
