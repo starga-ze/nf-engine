@@ -19,8 +19,11 @@ OPENSSL_INSTALL = os.path.join(INSTALL_ROOT, "openssl")
 OPENSSL_TAR = os.path.join(OPENSSL_DIR, f"openssl-{OPENSSL_VERSION}.tar.gz")
 OPENSSL_SRC_PATH = os.path.join(OPENSSL_DIR, f"openssl-{OPENSSL_VERSION}")
 
+SPDLOG_VERSION = "1.13.0"
 SPDLOG_DIR = os.path.join(ROOT_DIR, "3rd_party", "spdlog")
 SPDLOG_INSTALL = os.path.join(INSTALL_ROOT, "spdlog")
+SPDLOG_TAR = os.path.join(SPDLOG_DIR, f"spdlog-{SPDLOG_VERSION}.tar.gz")
+SPDLOG_SRC_PATH = os.path.join(SPDLOG_DIR, f"spdlog-{SPDLOG_VERSION}")
 
 BOOST_VERSION = "1.84.0"
 BOOST_VERSION_UNDERSCORE = BOOST_VERSION.replace(".", "_")

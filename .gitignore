@@ -3,24 +3,18 @@ build-*/
 cmake-build-*/
 
 backup/
-
 tmp/
-
-*.tar.gz
-*.log
-
-3rd_party/install/
-3rd_party/openssl/
-3rd_party/boost/
 
 .vscode/
 .idea/
-*.swp
-
-.DS_Store
-
 
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+*.swp
+*.tar.gz
+*.log
+
+

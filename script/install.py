@@ -46,29 +46,55 @@ def install_openssl():
 
 
 def install_spdlog():
-    spdlog_config_path = os.path.join(SPDLOG_INSTALL, "lib", "cmake", "spdlog", "spdlogConfig.cmake")
-    if os.path.exists(spdlog_config_path):
+    config_check = os.path.join(SPDLOG_INSTALL, "lib", "cmake", "spdlog", "spdlogConfig.cmake")
+
+    if os.path.exists(config_check):
         print("[*] spdlog already installed, skipping...")
         return
 
-    if not os.path.exists(os.path.join(SPDLOG_DIR, "CMakeLists.txt")):
-        print(f"[!] spdlog source not found at {SPDLOG_DIR}. Please clone spdlog first.")
-        sys.exit(1)
-
-    spdlog_build_dir = os.path.join(SPDLOG_DIR, "build_temp")
-    os.makedirs(spdlog_build_dir, exist_ok=True)
+    os.makedirs(SPDLOG_DIR, exist_ok=True)
     os.makedirs(SPDLOG_INSTALL, exist_ok=True)
 
-    cmake_cmd = ["cmake", SPDLOG_DIR, f"-DCMAKE_INSTALL_PREFIX={SPDLOG_INSTALL}",
-                 "-DSPDLOG_BUILD_SHARED=OFF", "-DSPDLOG_BUILD_BENCH=OFF",
-                 "-DSPDLOG_BUILD_EXAMPLES=OFF", "-DSPDLOG_BUILD_TESTS=OFF"]
+    if not os.path.exists(SPDLOG_SRC_PATH):
+        print(f"[*] Downloading spdlog {SPDLOG_VERSION}...")
 
-    run_cmd(cmake_cmd, cwd=spdlog_build_dir, msg="Configuring spdlog with CMake")
+        subprocess.run(
+            [
+                "wget",
+                f"https://github.com/gabime/spdlog/archive/refs/tags/v{SPDLOG_VERSION}.tar.gz",
+                "-O",
+                SPDLOG_TAR
+            ],
+            check=True
+        )
 
-    run_cmd(["make", MAKE_JOBS], cwd=spdlog_build_dir, msg=f"Compiling spdlog with {NUM_CORES} jobs")
-    run_cmd(["make", "install"], cwd=spdlog_build_dir, msg="Installing spdlog")
+        run_cmd(
+            ["tar", "xvf", SPDLOG_TAR, "-C", SPDLOG_DIR],
+            cwd=SPDLOG_DIR,
+            msg="Extracting spdlog source"
+        )
 
-    shutil.rmtree(spdlog_build_dir)
+        os.remove(SPDLOG_TAR)
+
+    build_dir = os.path.join(SPDLOG_SRC_PATH, "build_temp")
+    os.makedirs(build_dir, exist_ok=True)
+
+    run_cmd(
+        [
+            "cmake",
+            "..",
+            f"-DCMAKE_INSTALL_PREFIX={SPDLOG_INSTALL}",
+            "-DSPDLOG_BUILD_SHARED=OFF",
+            "-DSPDLOG_BUILD_EXAMPLES=OFF",
+            "-DSPDLOG_BUILD_TESTS=OFF"
+        ],
+        cwd=build_dir,
+        msg="Configuring spdlog"
+    )
+
+    run_cmd(["make", MAKE_JOBS], cwd=build_dir)
+    run_cmd(["make", "install"], cwd=build_dir)
+
     print("[*] spdlog installation complete.")
 
 
