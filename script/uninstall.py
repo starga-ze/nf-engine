@@ -1,46 +1,22 @@
 import os
 import shutil
+import sys
 
-from script.utils import (
-    INSTALL_ROOT, BUILD_DIR,
-    OPENSSL_TAR, OPENSSL_SRC_PATH,
-    BOOST_TAR, BOOST_SRC_PATH,
-)
+from script.utils import ROOT_DIR, BUILD_DIR, THIRD_PARTY_DIR
 
-
-def clean_build_dir():
+def clean_project():
     if os.path.exists(BUILD_DIR):
+        print(f"[*] Removed build directory...: {BUILD_DIR}")
         shutil.rmtree(BUILD_DIR)
-        print("[*] Build folder cleaned (3rd party installs preserved)")
+
+    if os.path.exists(THIRD_PARTY_DIR):
+        print(f"[*] Removed all 3rd party dependencies...: {THIRD_PARTY_DIR}")
+        shutil.rmtree(THIRD_PARTY_DIR)
+
     else:
-        print("[*] Build folder already clean.")
-
-
-def uninstall_dependencies():
-    clean_build_dir()
-
-    if os.path.exists(INSTALL_ROOT):
-        shutil.rmtree(INSTALL_ROOT)
-        print(f"[*] Uninstall: 3rd party installation folder '{INSTALL_ROOT}' removed.")
-    else:
-        print("[*] 3rd party installation folder already removed.")
-
-    if os.path.exists(OPENSSL_SRC_PATH):
-        shutil.rmtree(OPENSSL_SRC_PATH)
-        print(f"[*] Uninstall: OpenSSL source folder '{OPENSSL_SRC_PATH}' removed.")
-
-    if os.path.exists(OPENSSL_TAR):
-        os.remove(OPENSSL_TAR)
-        print(f"[*] Uninstall: OpenSSL tarball '{OPENSSL_TAR}' removed.")
-
-    if os.path.exists(BOOST_SRC_PATH):
-        shutil.rmtree(BOOST_SRC_PATH)
-        print(f"[*] Removed Boost source '{BOOST_SRC_PATH}'.")
-
-    if os.path.exists(BOOST_TAR):
-        os.remove(BOOST_TAR)
-        print(f"[*] Removed Boost tarball '{BOOST_TAR}'.")
+        print("[*] 3rd party folder already clean.")
 
 def run():
-    uninstall_dependencies()
+    print("[*] Starting uninstallation...")
+    clean_project()
     print("[*] All project and dependency files uninstalled successfully.")

@@ -13,6 +13,8 @@ EXEC = os.path.join(BUILD_DIR, "nf-serverd")
 
 INSTALL_ROOT = os.path.join(ROOT_DIR, "3rd_party", "install")
 
+THIRD_PARTY_DIR = os.path.join(ROOT_DIR, "3rd_party")
+
 OPENSSL_VERSION = "3.2.0"
 OPENSSL_DIR = os.path.join(ROOT_DIR, "3rd_party", "openssl")
 OPENSSL_INSTALL = os.path.join(INSTALL_ROOT, "openssl")
