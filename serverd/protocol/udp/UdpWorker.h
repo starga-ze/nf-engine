@@ -1,19 +1,23 @@
 #pragma once
 
-#include <queue>
 #include <memory>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+#include <vector>
+
+#include "packet/Packet.h"
 
 class RxRouter;
-class Packet;
 class ThreadManager;
+class SpscQueue;
+class Epoll;
 
 class UdpWorker
 {
 public:
-    UdpWorker(RxRouter* rxRouter, int workerCount, ThreadManager* threadManager);
+    UdpWorker(RxRouter* rxRouter,
+              ThreadManager* threadManager,
+              int id);
+
     ~UdpWorker();
 
     void start();
@@ -25,14 +29,13 @@ private:
     void processPacket();
 
 private:
-    RxRouter* m_rxRouter{nullptr};
-    int m_workerCount{0};
-    ThreadManager* m_threadManager{nullptr};
+    RxRouter* m_rxRouter;
+    ThreadManager* m_threadManager;
 
+    int m_id;
     std::atomic<bool> m_running{false};
 
-    std::mutex m_lock;
-    std::condition_variable m_cv;
-    std::queue<std::unique_ptr<Packet>> m_rxQueue;
-};
+    std::unique_ptr<SpscQueue> m_rxQueue;
+    std::unique_ptr<Epoll> m_rxEpoll;
 
+};

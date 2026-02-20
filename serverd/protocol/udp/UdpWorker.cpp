@@ -1,17 +1,24 @@
 #include "UdpWorker.h"
 
-#include "util/ThreadManager.h"
 #include "ingress/RxRouter.h"
-#include "packet/Packet.h"
+#include "util/ThreadManager.h"
 #include "util/Logger.h"
+#include "io/Epoll.h"
+#include "algorithm/SpscQueue.h"
 
-#include <functional>
+#include <sys/epoll.h>
 
-UdpWorker::UdpWorker(RxRouter* rxRouter, int workerCount, ThreadManager* threadManager)
+#define UDP_SPSC_QUEUE_SIZE (65536) // 64K Slot
+
+UdpWorker::UdpWorker(RxRouter* rxRouter,
+                     ThreadManager* threadManager,
+                     int id)
     : m_rxRouter(rxRouter),
-      m_workerCount(workerCount),
-      m_threadManager(threadManager)
+      m_threadManager(threadManager),
+      m_id(id)
 {
+    m_rxQueue = std::make_unique<SpscQueue>(UDP_SPSC_QUEUE_SIZE);
+    m_rxEpoll = std::make_unique<Epoll>();
 }
 
 UdpWorker::~UdpWorker()
@@ -21,54 +28,74 @@ UdpWorker::~UdpWorker()
 
 void UdpWorker::start()
 {
+    if (!m_rxEpoll->init())
+    {
+        LOG_ERROR("UdpWorker epoll init failed");
+        return;
+    }
+
     m_running = true;
 
-    for (int i = 0; i < m_workerCount; ++i)
-    {
-        m_threadManager->addThread(
-            "udp_worker_" + std::to_string(i),
-            std::bind(&UdpWorker::processPacket, this),
-            std::function<void()>{}
-        );
-    }
+    m_threadManager->addThread(
+        "udp_worker_" + std::to_string(m_id),
+        std::bind(&UdpWorker::processPacket, this),
+        std::function<void()>{}
+    );
 }
 
 void UdpWorker::stop()
 {
     m_running = false;
-    m_cv.notify_all();
+
+    if (m_rxEpoll)
+    {
+        m_rxEpoll->wakeup();
+    }
 }
 
 void UdpWorker::enqueueRx(std::unique_ptr<Packet> pkt)
 {
-    if (!pkt) return;
+    if (!pkt)
+        return;
 
+    if (m_rxQueue->enqueue(std::move(pkt)))
     {
-        std::lock_guard<std::mutex> lock(m_lock);
-        m_rxQueue.push(std::move(pkt));
+        m_rxEpoll->wakeup();
     }
-    m_cv.notify_one();
+    else
+    {
+        LOG_WARN("UdpWorker SPSC Rx queue full, pkt dropped");
+    }
 }
 
 void UdpWorker::processPacket()
 {
-    while (true)
+    std::vector<epoll_event> events(4);
+
+    while (m_running)
     {
-        std::unique_ptr<Packet> pkt;
-
+        int n = m_rxEpoll->wait(events, -1);
+        if (n <= 0)
         {
-            std::unique_lock<std::mutex> lock(m_lock);
-
-            while (m_rxQueue.empty() and m_running)
-                m_cv.wait(lock);
-
-            if (!m_running && m_rxQueue.empty())
-                return;
-
-            pkt = std::move(m_rxQueue.front());
-            m_rxQueue.pop();
+            continue;
         }
+
+        for (int i = 0; i < n; ++i)
+        {
+            if (events[i].data.fd == m_rxEpoll->getWakeupFd())
+            {
+                m_rxEpoll->drainWakeup();
+
+                while (auto pkt = m_rxQueue->dequeue())
+                {
+                    m_rxRouter->handlePacket(std::move(pkt));
+                }
+            }
+        }
+    }
+
+    while (auto pkt = m_rxQueue->dequeue())
+    {
         m_rxRouter->handlePacket(std::move(pkt));
     }
 }
-

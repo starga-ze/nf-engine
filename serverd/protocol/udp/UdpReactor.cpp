@@ -1,27 +1,28 @@
 #include "UdpReactor.h"
 
-#include "protocol/udp/UdpEpoll.h"
 #include "protocol/udp/UdpWorker.h"
-
 #include "util/Logger.h"
-#include "packet/Packet.h"
+#include "io/Epoll.h"
+#include "algorithm/MpscQueue.h"
 
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <cstring>
-#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <sys/socket.h>
 
-#define UDP_RECV_CHUNK_SIZE     (2048)
-#define UDP_MAX_RX_BUFFER_SIZE  (256 * 1024)
-#define UDP_MAX_EVENTS          (64)
+#define UDP_RECV_CHUNK_SIZE         (4096)
+#define UDP_MAX_EVENTS              (64)
+#define UDP_MAX_RX_BUFFER_SIZE      (65536) // 64KB
+#define UDP_MPSC_QUEUE_SIZE         (65536)
 
 UdpReactor::UdpReactor(int port, UdpWorker* udpWorker)
     : m_port(port),
       m_udpWorker(udpWorker)
 {
-    m_udpEpoll = std::make_unique<UdpEpoll>();
+    m_udpEpoll = std::make_unique<Epoll>();
+    m_txQueue  = std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE);
 }
 
 UdpReactor::~UdpReactor()
@@ -32,10 +33,10 @@ UdpReactor::~UdpReactor()
 
 void UdpReactor::start()
 {
-    if (not init())
+    if (!init())
         return;
 
-    if (not m_udpEpoll->init())
+    if (!m_udpEpoll->init())
     {
         shutdown();
         return;
@@ -60,29 +61,17 @@ void UdpReactor::start()
         for (int i = 0; i < n; ++i)
         {
             int fd = events[i].data.fd;
-            uint32_t ev = events[i].events;
 
             if (fd == m_udpEpoll->getWakeupFd())
             {
                 m_udpEpoll->drainWakeup();
-                snapshotPendingTx();
-                flushAllPending(256);
+                processTxQueue();
                 continue;
             }
 
             if (fd == m_sockFd)
             {
-                if (ev & (EPOLLERR | EPOLLHUP))
-                {
-                    LOG_ERROR("UdpReactor: socket error/hup");
-                    m_running = false;
-                    break;
-                }
-
-                if (ev & EPOLLIN)
-                {
-                    receivePackets();
-                }
+                receivePackets();
             }
         }
     }
@@ -98,9 +87,9 @@ void UdpReactor::stop()
 
 bool UdpReactor::init()
 {
-    if (not createSocket()) return false;
-    if (not setSockOpt())   return false;
-    if (not bindSocket())   return false;
+    if (!createSocket()) return false;
+    if (!setSockOpt())   return false;
+    if (!bindSocket())   return false;
 
     LOG_INFO("UDP listen ready port={}", m_port);
     return true;
@@ -111,26 +100,20 @@ bool UdpReactor::createSocket()
     m_sockFd = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (m_sockFd < 0)
     {
-        LOG_ERROR("UdpReactor: socket create failed errno={}", errno);
+        LOG_ERROR("UDP socket create failed errno={}", errno);
         return false;
     }
 
-    if (not setNonBlocking(m_sockFd))
-    {
-        LOG_ERROR("UdpReactor: setNonBlocking failed errno={}", errno);
-        return false;
-    }
-
-    return true;
+    return setNonBlocking(m_sockFd);
 }
 
 bool UdpReactor::setSockOpt()
 {
     int opt = 1;
-    (void)::setsockopt(m_sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    ::setsockopt(m_sockFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     int rcv = UDP_MAX_RX_BUFFER_SIZE;
-    (void)::setsockopt(m_sockFd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
+    ::setsockopt(m_sockFd, SOL_SOCKET, SO_RCVBUF, &rcv, sizeof(rcv));
 
     return true;
 }
@@ -141,31 +124,15 @@ bool UdpReactor::bindSocket()
     m_serverAddr.sin_addr.s_addr = INADDR_ANY;
     m_serverAddr.sin_port = htons(m_port);
 
-    if (::bind(m_sockFd, reinterpret_cast<sockaddr*>(&m_serverAddr), sizeof(m_serverAddr)) != 0)
+    if (::bind(m_sockFd,
+               reinterpret_cast<sockaddr*>(&m_serverAddr),
+               sizeof(m_serverAddr)) != 0)
     {
-        LOG_ERROR("UdpReactor: bind failed errno={}", errno);
+        LOG_ERROR("UDP bind failed errno={}", errno);
         return false;
     }
 
     return true;
-}
-
-void UdpReactor::shutdown()
-{
-    {
-        std::lock_guard<std::mutex> lock(m_pendingTxLock);
-        m_pendingTx.clear();
-        m_snapshotTx.clear();
-    }
-
-    if (m_udpEpoll)
-        m_udpEpoll->close();
-
-    if (m_sockFd >= 0)
-    {
-        ::close(m_sockFd);
-        m_sockFd = -1;
-    }
 }
 
 bool UdpReactor::setNonBlocking(int fd)
@@ -193,7 +160,10 @@ void UdpReactor::receivePackets()
 
         if (bytes > 0)
         {
-            std::vector<uint8_t> payload(m_rxBuffer.begin(), m_rxBuffer.begin() + bytes);
+            std::vector<uint8_t> payload(
+                m_rxBuffer.begin(),
+                m_rxBuffer.begin() + bytes
+            );
 
             auto pkt = std::make_unique<Packet>(
                 m_sockFd,
@@ -216,7 +186,7 @@ void UdpReactor::receivePackets()
         if (errno == EINTR)
             continue;
 
-        LOG_ERROR("UdpReactor: recvfrom failed errno={}", errno);
+        LOG_ERROR("UDP recvfrom failed errno={}", errno);
         return;
     }
 }
@@ -225,85 +195,73 @@ void UdpReactor::enqueueTx(std::unique_ptr<Packet> pkt)
 {
     if (!pkt) return;
 
+    if (m_txQueue->enqueue(std::move(pkt)))
     {
-        std::lock_guard<std::mutex> lock(m_pendingTxLock);
-        m_pendingTx.push_back(std::move(pkt));
+        m_udpEpoll->wakeup();
     }
-
-    if (m_udpEpoll) m_udpEpoll->wakeup();
-}
-
-void UdpReactor::snapshotPendingTx()
-{
-    std::lock_guard<std::mutex> lock(m_pendingTxLock);
-    while (!m_pendingTx.empty())
+    else
     {
-        m_snapshotTx.push_back(std::move(m_pendingTx.front()));
-        m_pendingTx.pop_front();
+        LOG_WARN("UDP Tx MPSC queue full, packet dropped");
     }
 }
 
-void UdpReactor::flushAllPending(size_t budgetItems)
+void UdpReactor::processTxQueue()
 {
-    (void)flushPending(budgetItems);
+    std::vector<std::unique_ptr<Packet>> packets;
+
+    m_txQueue->dequeueAll(packets);
+
+    for (auto& pkt : packets)
+    {
+        flushPacket(pkt);
+    }
 }
 
-size_t UdpReactor::flushPending(size_t budgetItems)
+void UdpReactor::flushPacket(std::unique_ptr<Packet>& pkt)
 {
-    size_t used = 0;
+    const auto& payload = pkt->getPayload();
 
-    while (used < budgetItems)
+    sockaddr_in dstAddr{};
+    dstAddr.sin_family = AF_INET;
+    dstAddr.sin_addr.s_addr = htonl(pkt->getDstIp());
+    dstAddr.sin_port = htons(pkt->getDstPort());
+
+    ssize_t ret = ::sendto(
+        m_sockFd,
+        payload.data(),
+        payload.size(),
+        0,
+        reinterpret_cast<const sockaddr*>(&dstAddr),
+        sizeof(dstAddr)
+    );
+
+    if (ret < 0)
     {
-        if (m_snapshotTx.empty())
-            return used;
-
-        auto pkt = std::move(m_snapshotTx.front());
-        m_snapshotTx.pop_front();
-
-        const auto& payload = pkt->getPayload();
-
-        sockaddr_in dstAddr{};
-        dstAddr.sin_family = AF_INET;
-        dstAddr.sin_addr.s_addr = htonl(pkt->getDstIp());
-        dstAddr.sin_port = htons(pkt->getDstPort());
-
-        ssize_t ret = ::sendto(
-            m_sockFd,
-            payload.data(),
-            payload.size(),
-            0,
-            reinterpret_cast<const sockaddr*>(&dstAddr),
-            sizeof(dstAddr)
-        );
-
-        if (ret >= 0)
-        {
-            used++;
-            continue;
-        }
-
         if (errno == EAGAIN || errno == EWOULDBLOCK)
         {
-            m_snapshotTx.push_front(std::move(pkt));
-            if (m_udpEpoll) m_udpEpoll->wakeup();
-            return used + 1;
+            m_txQueue->enqueue(std::move(pkt));
+            m_udpEpoll->wakeup();
+            return;
         }
 
         if (errno == EINTR)
         {
-            m_snapshotTx.push_front(std::move(pkt));
-            continue;
+            m_txQueue->enqueue(std::move(pkt));
+            return;
         }
 
-        LOG_ERROR("UdpReactor: sendto failed errno={}", errno);
-        used++;
+        LOG_ERROR("UDP sendto failed errno={}", errno);
     }
-
-    if (!m_snapshotTx.empty())
-    {
-        if (m_udpEpoll) m_udpEpoll->wakeup();
-    }
-
-    return used;
 }
 
+void UdpReactor::shutdown()
+{
+    if (m_udpEpoll)
+        m_udpEpoll->close();
+
+    if (m_sockFd >= 0)
+    {
+        ::close(m_sockFd);
+        m_sockFd = -1;
+    }
+}
