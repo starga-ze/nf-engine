@@ -3,14 +3,14 @@
 
 class StatsService {
 public:
-    explicit StatsService(UdsClient& client)
-        : client_(client) {}
+    explicit StatsService(std::shared_ptr<UdsClient> client)
+        : m_client(std::move(client)) {}
 
     Stats fetch() {
-        return client_.getStats();
+        return m_client->getStats();
     }
 
 private:
-    UdsClient& client_;
+    std::shared_ptr<UdsClient> m_client;
 };
 

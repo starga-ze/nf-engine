@@ -1,15 +1,20 @@
 #pragma once
-#include "../service/StatsService.h"
+#include <memory>
+#include <boost/asio/io_context.hpp>
+
+class StatsService;
+class HttpListener;
 
 class HttpServer {
 public:
-    HttpServer(int port, StatsService& svc);
+    HttpServer(int port, std::shared_ptr<StatsService> svc);
     void run();
 
 private:
-    std::string loadFile(const std::string& path);
+    int m_port;
 
-    int port_;
-    StatsService& svc_;
+    std::shared_ptr<StatsService> m_statsService;
+    std::shared_ptr<boost::asio::io_context> m_ioc;
+    std::shared_ptr<HttpListener> m_listener;
 };
 

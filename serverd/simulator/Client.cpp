@@ -20,7 +20,7 @@ Client::Client(int id, int udpServerPort, int tcpServerPort)
     {
         m_logger = spdlog::basic_logger_mt(
             "nf-client-" + std::to_string(id),
-            "/var/log/nf/nf-client.log"
+            "/var/log/nf/clientd.log"
         );
 
         m_logger->set_pattern(
