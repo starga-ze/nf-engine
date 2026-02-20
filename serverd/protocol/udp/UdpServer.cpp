@@ -7,7 +7,7 @@ UdpServer::UdpServer(int port, RxRouter* rxRouter, int worker, ThreadManager* th
 {
     for (int i = 0; i < worker; ++i)
     {
-        m_udpWorker  = std::make_unique<UdpWorker>(rxRouter, threadManager, i);
+        m_udpWorkers.emplace_back(std::make_unique<UdpWorker>(rxRouter, threadManager, i));
     }
     m_udpReactor = std::make_unique<UdpReactor>(port, m_udpWorker.get());
 }

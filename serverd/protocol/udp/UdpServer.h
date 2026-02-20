@@ -21,7 +21,7 @@ public:
     void enqueueTx(std::unique_ptr<Packet> pkt);
 
 private:
-    std::unique_ptr<UdpWorker>  m_udpWorker;
+    std::vector<std::unique_ptr<UdpWorker>>  m_udpWorkers;
     std::unique_ptr<UdpReactor> m_udpReactor;
 };
 
