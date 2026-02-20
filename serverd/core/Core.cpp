@@ -160,7 +160,7 @@ void Core::startThreads() {
     
     m_threadManager->addThread("tls_reactor",
                                std::bind(&TlsServer::start, m_tlsServer.get()),
-                               std::bind(&TlsServer::stopReact, m_tlsServer.get()));
+                               std::bind(&TlsServer::stop, m_tlsServer.get()));
 
     m_threadManager->addThread("udp_reactor",
                                std::bind(&UdpServer::start, m_udpServer.get()),
