@@ -1,10 +1,9 @@
 #include "HttpRouter.h"
 #include "HttpCache.h"
 #include "service/StatsService.h"
+#include "util/Logger.h"
 
-#include <nlohmann/json.hpp>
-
-using json = nlohmann::json;
+#include <string>
 
 HttpRouter::HttpRouter(
     std::shared_ptr<StatsService> svc,
@@ -21,9 +20,7 @@ makeResponse(http::status st,
              unsigned version,
              bool keepAlive)
 {
-    http::response<http::string_body>
-        res{st, version};
-
+    http::response<http::string_body> res{st, version};
     res.set(http::field::server, "nf-mgmtd");
     res.set(http::field::content_type, type);
     res.keep_alive(keepAlive);
@@ -33,60 +30,64 @@ makeResponse(http::status st,
 }
 
 http::response<http::string_body>
-HttpRouter::handle(
-    const http::request<
-        http::string_body>& req)
+HttpRouter::handle(const http::request<http::string_body>& req)
 {
-    const std::string target =
-        std::string(req.target());
-    const bool keep =
-        req.keep_alive();
+    const std::string target = std::string(req.target());
+    const bool keep = req.keep_alive();
 
-    if (target == "/"
-        || target == "/app.js"
-        || target == "/style.css")
+    // Static files
+    if (target == "/" ||
+        target.rfind("/js/", 0) == 0 ||
+        target.rfind("/css/", 0) == 0)
     {
-        auto file =
-            m_cache->get(target);
-
+        auto file = m_cache->get(target);
         if (!file)
-            return makeResponse(
-                http::status::not_found,
-                "not found",
-                "text/plain",
-                req.version(),
-                keep);
+        {
+            return makeResponse(http::status::not_found,
+                                "not found",
+                                "text/plain",
+                                req.version(),
+                                keep);
+        }
 
-        return makeResponse(
-            http::status::ok,
-            file->body,
-            file->contentType,
-            req.version(),
-            keep);
+        return makeResponse(http::status::ok,
+                            file->body,
+                            file->contentType,
+                            req.version(),
+                            keep);
     }
 
-    if (target == "/api/v1/stats")
+    // API - session stats
+    if (target == "/api/v1/stats/session")
     {
-        auto stats = m_statsService->fetch();
+        const std::string jsonBody = m_statsService->fetchSession();
+        
+        LOG_TRACE("HTTP /api/v1/stats/session response: {}", jsonBody);
 
-        json j;
-        j["rx_packets"] = stats.rx_packets;
-        j["tx_packets"] = stats.tx_packets;
-        j["active_sessions"] = stats.active_sessions;
-
-        return makeResponse(
-            http::status::ok,
-            j.dump(),
-            "application/json",
-            req.version(),
-            keep);
+        return makeResponse(http::status::ok,
+                            jsonBody,
+                            "application/json",
+                            req.version(),
+                            keep);
     }
 
-    return makeResponse(
-        http::status::not_found,
-        R"({"error":"not found"})",
-        "application/json",
-        req.version(),
-        keep);
-}
+    // API - engine stats
+    if (target == "/api/v1/stats/engine")
+    {
+        const std::string jsonBody = m_statsService->fetchEngine();
 
+        LOG_TRACE("HTTP /api/v1/stats/engine response: {}", jsonBody);
+
+        return makeResponse(http::status::ok,
+                            jsonBody,
+                            "application/json",
+                            req.version(),
+                            keep);
+    }
+
+    return makeResponse(http::status::not_found,
+                        R"({"error":"not found"})",
+                        "application/json",
+                        req.version(),
+                        keep);
+}

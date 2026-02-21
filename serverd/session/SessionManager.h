@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/CoreControl.h"
+
 #include "session/Session.h"
 #include "packet/ParsedPacket.h"
 
@@ -36,6 +38,11 @@ public:
 
     bool getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxSnapshot& out);
 
+    std::vector<SessionInfoView> snapshot() const;
+
+    size_t totalCount() const;
+
+
 private:
     void dump();
     static const char* stateToStr(SessionState s);
@@ -43,7 +50,7 @@ private:
     
     std::atomic<bool> m_running {false};
 
-    std::mutex m_lock;
+    mutable std::mutex m_lock;
     std::unordered_map <int, uint64_t> m_tlsFdToSessionId;
     std::unordered_map <uint64_t, std::unique_ptr<Session>> m_sessions;
 };

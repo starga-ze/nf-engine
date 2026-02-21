@@ -1,5 +1,6 @@
 #include "Core.h"
 #include "http/HttpServer.h"
+#include "util/Logger.h"
 
 #include <thread>
 #include <algorithm>
@@ -13,6 +14,10 @@ Core::Core(int port, std::shared_ptr<StatsService> svc)
 
 void Core::run() 
 {
+    Logger::Init("nf-mgmtd", "/var/log/nf/mgmtd.log", 1048576 * 5, 100);
+    
+    LOG_INFO("Mgmtd core start...");
+
     m_httpServer = std::make_shared<HttpServer>(m_port, m_statsService);
 
     const size_t nThreads = 4;
@@ -20,5 +25,7 @@ void Core::run()
     m_threadManager->start(nThreads, std::bind(&HttpServer::run, m_httpServer.get()));
             
     m_threadManager->join();
+
+    Logger::Shutdown();
 }
 

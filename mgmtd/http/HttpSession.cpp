@@ -23,9 +23,7 @@ void HttpSession::doRead()
     });
 }
 
-void HttpSession::onRead(
-    beast::error_code ec,
-    std::size_t)
+void HttpSession::onRead(beast::error_code ec, std::size_t)
 {
     if (ec == http::error::end_of_stream)
         return doClose();

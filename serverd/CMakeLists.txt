@@ -14,5 +14,6 @@ target_link_libraries(nf-serverd PRIVATE
     OpenSSL::Crypto
     Threads::Threads
     odbc
+    nlohmann_json::nlohmann_json
 )
 

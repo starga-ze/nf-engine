@@ -1,16 +1,15 @@
-#pragma once
-#include "../ipc/UdsClient.h"
+#include <string>
 
-class StatsService {
+class IpcCommandHandler;
+
+class StatsService
+{
 public:
-    explicit StatsService(std::shared_ptr<UdsClient> client)
-        : m_client(std::move(client)) {}
+    explicit StatsService(IpcCommandHandler& handler);
 
-    Stats fetch() {
-        return m_client->getStats();
-    }
+    std::string fetchSession();
+    std::string fetchEngine();
 
 private:
-    std::shared_ptr<UdsClient> m_client;
+    IpcCommandHandler& m_handler;
 };
-

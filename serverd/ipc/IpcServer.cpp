@@ -1,6 +1,7 @@
 #include "ipc/IpcServer.h"
 #include "io/Epoll.h"
 
+#include <nlohmann/json.hpp>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <sys/stat.h>
@@ -10,15 +11,19 @@
 #include <iostream>
 #include <vector>
 
+using json = nlohmann::json;
+
 static void setNonBlocking(int fd)
 {
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
 
-IpcServer::IpcServer(std::string socketPath)
-    : m_socketPath(std::move(socketPath))
+IpcServer::IpcServer(CoreControl& control, std::string socketPath) : 
+    m_control(control),
+    m_socketPath(std::move(socketPath))
 {
+    m_handler = std::make_unique<IpcCommandHandler>(control);
 }
 
 IpcServer::~IpcServer()
@@ -43,9 +48,7 @@ bool IpcServer::setupSocket()
     std::strncpy(addr.sun_path, m_socketPath.c_str(),
                  sizeof(addr.sun_path) - 1);
 
-    if (::bind(m_serverFd,
-               reinterpret_cast<sockaddr*>(&addr),
-               sizeof(addr)) < 0)
+    if (::bind(m_serverFd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0)
     {
         std::cerr << "[IPC] bind() failed\n";
         ::close(m_serverFd);
@@ -91,7 +94,6 @@ void IpcServer::start()
 
             int fd = events[i].data.fd;
 
-            // wakeup eventfd
             if (fd == m_ipcEpoll->getWakeupFd()) {
                 m_ipcEpoll->drainWakeup();
                 m_running = false;
@@ -109,27 +111,25 @@ void IpcServer::start()
 
 void IpcServer::handleAccept()
 {
-    while (true) {
-
+    while (true)
+    {
         int clientFd = ::accept(m_serverFd, nullptr, nullptr);
         if (clientFd < 0)
             break;
 
         setNonBlocking(clientFd);
 
-        char buffer[1024];
-        ::read(clientFd, buffer, sizeof(buffer));
+        char buffer[2048] = {0};
+        ssize_t len = ::read(clientFd, buffer, sizeof(buffer) - 1);
 
-        const char* response =
-            "{\"rx_packets\":1000,"
-            "\"tx_packets\":2000,"
-            "\"active_sessions\":5}";
+        std::string reply;
 
-        ::send(clientFd,
-               response,
-               std::strlen(response),
-               MSG_NOSIGNAL);
+        if (len > 0)
+            reply = m_handler->handle(std::string(buffer, len));
+        else
+            reply = R"({"ok":false,"error":"empty request"})";
 
+        ::send(clientFd, reply.c_str(), reply.size(), MSG_NOSIGNAL);
         ::close(clientFd);
     }
 }
@@ -142,7 +142,7 @@ void IpcServer::stop()
     m_running = false;
 
     if (m_ipcEpoll) {
-        m_ipcEpoll->wakeup();   // eventfd write
+        m_ipcEpoll->wakeup();
     }
 }
 

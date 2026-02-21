@@ -191,6 +191,32 @@ void SessionManager::dump()
     LOG_TRACE("Session Table Dump\n{}", oss.str());
 }
 
+size_t SessionManager::totalCount() const
+{
+    std::lock_guard<std::mutex> lock(m_lock);
+    return m_sessions.size();
+}
+
+std::vector<SessionInfoView> SessionManager::snapshot() const
+{
+    std::lock_guard<std::mutex> lock(m_lock);
+
+    std::vector<SessionInfoView> result;
+    result.reserve(m_sessions.size());
+
+    for (const auto& [sid, session] : m_sessions) {
+        SessionInfoView v;
+        v.sessionId = sid;
+        v.state     = stateToStr(session->getState());
+        v.tlsFd     = session->getTlsFd();
+        v.tcpFd     = session->getTcpFd();
+        v.udpFd     = session->getUdpFd();
+        result.push_back(std::move(v));
+    }
+
+    return result;
+}
+
 const char* SessionManager::stateToStr(SessionState s) {
     switch (s) {
     case SessionState::PRE_AUTH: return "PRE_AUTH";
@@ -200,4 +226,5 @@ const char* SessionManager::stateToStr(SessionState s) {
     default:                     return "UNKNOWN";
     }
 }
+
 

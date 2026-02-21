@@ -20,6 +20,8 @@ void Core::setFlag(bool enableDb) {
 }
 
 void Core::run() {
+    m_startTime = std::chrono::steady_clock::now();
+
     initializeIpcServer();
 
     if (not initializeRuntime()) {
@@ -51,7 +53,12 @@ void Core::shutdown() {
 
 void Core::initializeIpcServer()
 {
-    m_ipcServer = std::make_unique<IpcServer>("/run/nf-server/nf-server.sock");
+    m_coreControl = std::make_unique<CoreControl>(*this);
+
+    m_ipcServer = std::make_unique<IpcServer>(
+            *m_coreControl,
+            "/run/nf-server/nf-server.sock"
+            );
 }
 
 bool Core::initializeRuntime() {
@@ -62,7 +69,7 @@ bool Core::initializeRuntime() {
 
     m_shardWorkerThread = 4;
 
-    m_clients = 1;
+    m_clients = 15;
     
     m_tcpServerWorkerThread = 3;
     m_udpServerWorkerThread = 3;

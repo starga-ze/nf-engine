@@ -2,52 +2,71 @@
 #include <fstream>
 #include <sstream>
 
-std::string
-HttpCache::loadFile(
-    const std::string& path)
+static bool hasExtension(const std::string& path, const std::string& ext)
 {
-    std::ifstream file(path,
-                       std::ios::binary);
+    if (path.size() < ext.size())
+        return false;
+
+    return path.compare(path.size() - ext.size(), ext.size(), ext) == 0;
+}
+
+HttpCache::HttpCache(const std::string& baseDir) :
+    m_baseDir(baseDir)
+{
+
+}
+
+std::string HttpCache::loadFile(const std::string& path)
+{
+    std::ifstream file(path, std::ios::binary);
     if (!file)
-        throw std::runtime_error(
-            "Failed to open file: "
-            + path);
+        throw std::runtime_error("Failed to open file: " + path);
 
     std::ostringstream ss;
     ss << file.rdbuf();
     return ss.str();
 }
 
-HttpCache::HttpCache(
-    const std::string& baseDir)
+std::optional<HttpCache::Entry> HttpCache::get(const std::string& path) const
 {
-    m_cache["/"] = {
-        "text/html",
-        loadFile(baseDir
-            + "/index.html")
-    };
+    std::string filePath;
+    std::string contentType = "text/plain";
 
-    m_cache["/app.js"] = {
-        "application/javascript",
-        loadFile(baseDir
-            + "/app.js")
-    };
+    if (path == "/")
+    {
+        filePath = m_baseDir + "/index.html";
+        contentType = "text/html";
+    }
+    else
+    {
+        filePath = m_baseDir + path;
 
-    m_cache["/style.css"] = {
-        "text/css",
-        loadFile(baseDir
-            + "/style.css")
-    };
-}
+        if (hasExtension(path, ".html"))
+        {
+            contentType = "text/html";
+        }
+        else if (hasExtension(path, ".js"))
+        {
+            contentType = "application/javascript";
+        }
+        else if (hasExtension(path, ".css"))
+        {
+            contentType = "text/css";
 
-std::optional<HttpCache::Entry>
-HttpCache::get(
-    const std::string& path) const
-{
-    auto it =
-        m_cache.find(path);
-    if (it == m_cache.end())
+        }
+    }
+    try
+    {
+        std::string body = loadFile(filePath);
+
+        Entry entry;
+        entry.contentType = contentType;
+        entry.body = std::move(body);
+
+        return entry;
+    }
+    catch (...)
+    {
         return std::nullopt;
-    return it->second;
+    }
 }
-

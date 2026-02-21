@@ -1,8 +1,9 @@
-
 #include "util/Macro.h"
 #include "util/ThreadManager.h"
 
+#include "core/CoreControl.h"
 #include "ipc/IpcServer.h"
+
 #include "db/DbManager.h"
 #include "shard/ShardManager.h"
 #include "session/SessionManager.h"
@@ -20,87 +21,97 @@
 #include <memory>
 #include <vector>
 #include <atomic>
+#include <chrono>
 
 class Core {
-public:
-    Core() = default;
+    public:
+        Core() = default;
 
-    ~Core() = default;
+        ~Core() = default;
 
-    void run();
+        void run();
 
-    void shutdown();
+        void shutdown();
 
-    void setFlag(bool enableDb);
+        void setFlag(bool enableDb);
 
-private:
-    void initializeIpcServer();
+        SessionManager* getSessionManager() { return m_sessionManager.get(); }
 
-    bool initializeRuntime();
+        ShardManager* getShardManager() { return m_shardManager.get(); }
 
-    bool initializeTlsContext();
+        std::chrono::steady_clock::time_point getStartTime() const { return m_startTime; }
 
-    void handleSignal();
+    private:
+        void initializeIpcServer();
 
-    static void signalHandler(int signum);
+        bool initializeRuntime();
 
-    bool initDatabase();
+        bool initializeTlsContext();
 
-    bool initThreadManager();
+        void handleSignal();
 
-    bool initShardManager();
+        static void signalHandler(int signum);
 
-    bool initSessionManager();
+        bool initDatabase();
 
-    void initializeIngress();
+        bool initThreadManager();
 
-    void initializeEgress();
+        bool initShardManager();
 
-    void initializeClients();
+        bool initSessionManager();
 
-    void startThreads();
+        void initializeIngress();
 
-    void waitForShutdown();
+        void initializeEgress();
 
-    std::unique_ptr <IpcServer> m_ipcServer;
+        void initializeClients();
 
-    std::unique_ptr <TlsContext> m_tlsContext;
+        void startThreads();
 
-    std::unique_ptr <DbManager> m_dbManager;
-    std::unique_ptr <ThreadManager> m_threadManager;
-    std::unique_ptr <ShardManager> m_shardManager;
-    std::unique_ptr <SessionManager> m_sessionManager;
+        void waitForShutdown();
 
-    std::unique_ptr <RxRouter> m_rxRouter;
-    std::unique_ptr <TxRouter> m_txRouter;
+        std::unique_ptr <CoreControl> m_coreControl;
+        std::unique_ptr <IpcServer> m_ipcServer;
 
-    std::unique_ptr <UdpServer> m_udpServer;
-    std::unique_ptr <TcpServer> m_tcpServer;
-    std::shared_ptr <TlsServer> m_tlsServer;
+        std::unique_ptr <TlsContext> m_tlsContext;
 
-    std::vector <std::unique_ptr<Client>> m_clientList;
-    /*
-    std::vector <std::unique_ptr<UdpClient>> m_udpClientList;
-    std::vector <std::unique_ptr<TcpClient>> m_tcpClientList;
-    std::vector <std::unique_ptr<TlsClient>> m_tlsClientList;
-    */
-    bool m_enableDb = false;
+        std::unique_ptr <DbManager> m_dbManager;
+        std::unique_ptr <ThreadManager> m_threadManager;
+        std::unique_ptr <ShardManager> m_shardManager;
+        std::unique_ptr <SessionManager> m_sessionManager;
 
-    int m_shardWorkerThread = 0;
+        std::unique_ptr <RxRouter> m_rxRouter;
+        std::unique_ptr <TxRouter> m_txRouter;
 
-    int m_clients = 0;
-    /*
-    int m_tcpClients = 0;
-    int m_udpClients = 0;
-    int m_tlsClients = 0;
-    */
-    int m_tcpServerWorkerThread = 0;
-    int m_udpServerWorkerThread = 0;
-    int m_tlsServerWorkerThread = 0;
+        std::unique_ptr <UdpServer> m_udpServer;
+        std::unique_ptr <TcpServer> m_tcpServer;
+        std::shared_ptr <TlsServer> m_tlsServer;
 
-    int m_tcpServerPort = 0;
-    int m_udpServerPort = 0;
+        std::vector <std::unique_ptr<Client>> m_clientList;
+        /*
+           std::vector <std::unique_ptr<UdpClient>> m_udpClientList;
+           std::vector <std::unique_ptr<TcpClient>> m_tcpClientList;
+           std::vector <std::unique_ptr<TlsClient>> m_tlsClientList;
+           */
+        bool m_enableDb = false;
 
-    static std::atomic<bool> m_running;
+        int m_shardWorkerThread = 0;
+
+        int m_clients = 0;
+        /*
+           int m_tcpClients = 0;
+           int m_udpClients = 0;
+           int m_tlsClients = 0;
+           */
+        int m_tcpServerWorkerThread = 0;
+        int m_udpServerWorkerThread = 0;
+        int m_tlsServerWorkerThread = 0;
+
+        int m_tcpServerPort = 0;
+        int m_udpServerPort = 0;
+
+        std::chrono::steady_clock::time_point m_startTime;
+
+        static std::atomic<bool> m_running;
 };
 
