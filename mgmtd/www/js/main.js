@@ -1,4 +1,4 @@
-import { fetchSessionStats, fetchEngineStats, login, logout } from "./api.js";
+import { fetchSessionStats, fetchEngineStats, fetchShardStats, login, logout } from "./api.js";
 import { renderDashboard } from "./dashboard.js";
 import { renderSessions } from "./sessions.js";
 
@@ -31,12 +31,13 @@ function setupLogout() {
 
 async function update() {
     try {
-        const [engineStats, sessionStats] = await Promise.all([
+        const [engineStats, sessionStats, shardStats] = await Promise.all([
             fetchEngineStats(),
-            fetchSessionStats()
+            fetchSessionStats(),
+            fetchShardStats()
         ]);
 
-        renderDashboard(engineStats, sessionStats.sessions);
+        renderDashboard(engineStats, sessionStats.sessions, shardStats);
         renderSessions(sessionStats.sessions);
     } catch (e) {
         console.error("Fetch failed", e);

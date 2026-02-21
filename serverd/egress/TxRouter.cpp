@@ -25,6 +25,10 @@ void TxRouter::handlePacket(uint64_t sessionId, Opcode opcode, std::vector<uint8
     else if (opcode == Opcode::LOGIN_FAIL_RES) {
         m_sessionManager->erase(sessionId);
     }
+    else if (opcode == Opcode::LOBBY_ENTRY_RES)
+    {
+        m_sessionManager->setState(sessionId, SessionState::IN_WORLD);
+    }
 
     std::unique_ptr<Packet> packet = m_packetBuilder.build(std::move(payload), snap);
     if (not packet) {

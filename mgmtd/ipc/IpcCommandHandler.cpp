@@ -14,7 +14,10 @@ std::string IpcCommandHandler::handle(const std::string& route)
     if (route == "stats/engine")
         return handleStatsEngine();
 
-    return R"({"ok":false,"error":"unknown route"})";
+    if (route == "stats/shard")
+        return handleStatsShard();
+
+    return R"({"error":"unknown route"})";
 }
 
 std::string IpcCommandHandler::handleStatsSession()
@@ -25,4 +28,9 @@ std::string IpcCommandHandler::handleStatsSession()
 std::string IpcCommandHandler::handleStatsEngine()
 {
     return m_client.send(R"({"cmd":"stats/engine"})");
+}
+
+std::string IpcCommandHandler::handleStatsShard()
+{
+    return m_client.send(R"({"cmd":"stats/shard"})");
 }

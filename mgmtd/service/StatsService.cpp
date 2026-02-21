@@ -15,3 +15,8 @@ std::string StatsService::fetchEngine()
 {
     return m_handler.handle("stats/engine");
 }
+
+std::string StatsService::fetchShard()
+{
+    return m_handler.handle("stats/shard");
+}

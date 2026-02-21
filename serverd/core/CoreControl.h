@@ -31,13 +31,19 @@ struct SessionSnapshot
     std::vector<SessionInfoView> sessions;
 };
 
+struct ShardSnapshot
+{
+    size_t shardCount;
+};
+
 class CoreControl 
 {
 public:
     explicit CoreControl(class Core& core);
 
-    SessionSnapshot sessionSnapshot();
     EngineSnapshot engineSnapshot() const;
+    SessionSnapshot sessionSnapshot() const;
+    ShardSnapshot shardSnapshot() const; 
 
 private:
     Core& m_core;

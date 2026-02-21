@@ -11,20 +11,6 @@ CoreControl::CoreControl(Core& core)
 {
 }
 
-SessionSnapshot CoreControl::sessionSnapshot()
-{
-    SessionSnapshot snapshot;
-
-    auto* sm = m_core.getSessionManager();
-    if (!sm)
-        return snapshot;
-
-    snapshot.totalSessions = sm->totalCount();
-    snapshot.sessions      = sm->snapshot();
-
-    return snapshot;
-}
-
 EngineSnapshot CoreControl::engineSnapshot() const
 {
     EngineSnapshot snapshot{};
@@ -88,6 +74,35 @@ EngineSnapshot CoreControl::engineSnapshot() const
 
     lastTotal = total;
     lastProc  = proc;
+
+    return snapshot;
+}
+
+SessionSnapshot CoreControl::sessionSnapshot() const
+{
+    SessionSnapshot snapshot;
+
+    auto* sessionManager = m_core.getSessionManager();
+    if (!sessionManager)
+        return snapshot;
+
+    snapshot.totalSessions = sessionManager->totalCount();
+    snapshot.sessions      = sessionManager->snapshot();
+
+    return snapshot;
+}
+
+ShardSnapshot CoreControl::shardSnapshot() const
+{
+    ShardSnapshot snapshot;
+
+    auto* shardManager = m_core.getShardManager();
+    if (not shardManager)
+    {
+        return snapshot;
+    }
+
+    snapshot.shardCount = shardManager->getWorkerCount();
 
     return snapshot;
 }

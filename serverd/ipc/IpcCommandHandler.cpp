@@ -21,12 +21,32 @@ std::string IpcCommandHandler::handle(const std::string& request)
         if (cmd == "stats/engine")
             return handleEngineStats();
 
-        return R"({"ok":false,"error":"unknown command"})";
+        if (cmd == "stats/shard")
+            return handleShardStats();
+
+        return R"({"error":"unknown command"})";
     }
     catch (...)
     {
-        return R"({"ok":false,"error":"invalid json"})";
+        return R"({"error":"invalid json"})";
     }
+}
+
+std::string IpcCommandHandler::handleEngineStats()
+{
+    auto snapshot = m_control.engineSnapshot();
+
+    json res;
+
+    res["ok"]           = true;
+    res["uptime"]       = snapshot.uptimeSeconds;
+    res["rssMB"]        = snapshot.rssMB;
+    res["heapMB"]       = snapshot.heapMB;
+    res["dataMB"]       = snapshot.dataMB;
+    res["virtualMB"]    = snapshot.virtualMB;
+    res["cpuPercent"]   = snapshot.cpuPercent;
+
+    return res.dump();
 }
 
 std::string IpcCommandHandler::handleSessionStats()
@@ -35,7 +55,6 @@ std::string IpcCommandHandler::handleSessionStats()
 
     json res;
 
-    res["ok"] = true;
     res["totalSessions"] = snapshot.totalSessions;
 
     json arr = json::array();
@@ -56,19 +75,13 @@ std::string IpcCommandHandler::handleSessionStats()
     return res.dump();
 }
 
-std::string IpcCommandHandler::handleEngineStats()
+std::string IpcCommandHandler::handleShardStats()
 {
-    auto snapshot = m_control.engineSnapshot();
+    auto snapshot = m_control.shardSnapshot();
 
     json res;
 
-    res["ok"]        = true;
-    res["uptime"]    = snapshot.uptimeSeconds;
-    res["rssMB"]     = snapshot.rssMB;
-    res["heapMB"]    = snapshot.heapMB;
-    res["dataMB"]    = snapshot.dataMB;
-    res["virtualMB"] = snapshot.virtualMB;
-    res["cpuPercent"]= snapshot.cpuPercent;
+    res["shardCount"] = snapshot.shardCount;
 
     return res.dump();
 }

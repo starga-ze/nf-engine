@@ -15,6 +15,7 @@ public:
 private:
     std::string handleSessionStats();
     std::string handleEngineStats();
+    std::string handleShardStats();
 
     CoreControl& m_control;
 };

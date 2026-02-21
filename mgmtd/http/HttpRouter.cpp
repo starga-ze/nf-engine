@@ -164,31 +164,37 @@ HttpRouter::Response HttpRouter::dispatchProtected(const Request& req)
     const std::string target = std::string(req.target());
     const bool keep = req.keep_alive();
 
+    std::string jsonBody;
+
     if (target == "/api/v1/stats/session")
     {
-        std::string jsonBody = m_statsService->fetchSession();
+        jsonBody = m_statsService->fetchSession();
+    }
+    else if (target == "/api/v1/stats/engine")
+    {
+        jsonBody = m_statsService->fetchEngine();
+    }
+    else if (target == "/api/v1/stats/shard")
+    {
+        jsonBody = m_statsService->fetchShard();
+    }
+    else
+    {
+        LOG_TRACE("Response dump: {} -> NOT_FOUND", target);
+
         return makeResponse(
-                http::status::ok,
-                jsonBody,
+                http::status::not_found,
+                R"({"error":"not found"})",
                 "application/json",
                 req.version(),
                 keep);
     }
 
-    if (target == "/api/v1/stats/engine")
-    {
-        std::string jsonBody = m_statsService->fetchEngine();
-        return makeResponse(
-                http::status::ok,
-                jsonBody,
-                "application/json",
-                req.version(),
-                keep);
-    }
+    LOG_TRACE("Response dump: {} -> {}", target, jsonBody);
 
     return makeResponse(
-            http::status::not_found,
-            R"({"error":"not found"})",
+            http::status::ok,
+            std::move(jsonBody),
             "application/json",
             req.version(),
             keep);

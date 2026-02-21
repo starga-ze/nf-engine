@@ -24,6 +24,10 @@ export async function fetchEngineStats() {
     return request("/api/v1/stats/engine");
 }
 
+export async function fetchShardStats() {
+    return request("/api/v1/stats/shard");
+}
+
 export async function login(username, password) {
     const res = await fetch("/api/login", {
         method: "POST",

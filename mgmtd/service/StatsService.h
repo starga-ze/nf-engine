@@ -9,6 +9,7 @@ public:
 
     std::string fetchSession();
     std::string fetchEngine();
+    std::string fetchShard();
 
 private:
     IpcCommandHandler& m_handler;
