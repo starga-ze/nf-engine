@@ -77,6 +77,7 @@ AuthService::LoginResult AuthService::login(const std::string& id,
     if (id != "admin" || password != "admin")
         return {false, ""};
     */
+
     std::string sessionId = std::to_string(now()) + "_sess";
 
     m_sessions[sessionId] = {
