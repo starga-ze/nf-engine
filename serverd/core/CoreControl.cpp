@@ -29,14 +29,12 @@ EngineSnapshot CoreControl::engineSnapshot() const
 {
     EngineSnapshot snapshot{};
 
-    // ---- Uptime ----
     auto now  = std::chrono::steady_clock::now();
     auto diff = std::chrono::duration_cast<std::chrono::seconds>(
         now - m_core.getStartTime());
 
     snapshot.uptimeSeconds = diff.count();
 
-    // ---- /proc/self/status 기반 메모리 ----
     std::ifstream status("/proc/self/status");
     std::string line;
 
@@ -44,7 +42,6 @@ EngineSnapshot CoreControl::engineSnapshot() const
     {
         if (line.rfind("VmRSS:", 0) == 0)
         {
-            // VmRSS:    24832 kB
             snapshot.rssMB = std::stoull(line.substr(6)) / 1024;
         }
         else if (line.rfind("VmData:", 0) == 0)
@@ -57,11 +54,9 @@ EngineSnapshot CoreControl::engineSnapshot() const
         }
     }
 
-    // ---- Heap (glibc malloc 영역) ----
     struct mallinfo2 mi = mallinfo2();
     snapshot.heapMB = mi.uordblks / (1024 * 1024);
 
-    // ---- CPU 사용률 ----
     static long lastTotal = 0;
     static long lastProc  = 0;
 

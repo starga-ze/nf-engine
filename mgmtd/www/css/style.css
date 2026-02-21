@@ -317,3 +317,56 @@ h2{
 .label{
   user-select:none;
 }
+
+.login-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.login-card {
+    background: #1e293b;
+    padding: 40px;
+    border-radius: 8px;
+    width: 320px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.4);
+}
+
+.login-card h2 {
+    margin-bottom: 20px;
+    color: #f1f5f9;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-radius: 4px;
+}
+
+.login-card button {
+    width: 100%;
+    padding: 10px;
+    background: #2563eb;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.login-card button:hover {
+    background: #1d4ed8;
+}
+
+.login-error {
+    margin-top: 10px;
+    color: #ef4444;
+    font-size: 14px;
+}

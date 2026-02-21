@@ -14,6 +14,7 @@
                 <button class="tab" data-tab="sessions">Sessions</button>
                 <button class="tab" data-tab="markets">Markets</button>
                 <button class="tab" data-tab="system">System</button>
+                <button type="button" class="logout-btn">Logout</button>
             </div>
         </div>
 
@@ -122,4 +123,18 @@
 
         <script type="module" src="/js/main.js"></script>
     </body>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="login-overlay" style="display:none;">
+        <div class="login-card">
+            <h2>Admin Login</h2>
+
+            <input id="username" type="text" placeholder="Username" />
+            <input id="password" type="password" placeholder="Password" />
+
+            <button onclick="handleLogin()">Login</button>
+
+            <div id="loginError" class="login-error"></div>
+        </div>
+    </div>
 </html>

@@ -1,11 +1,46 @@
+async function request(url, options = {}) {
+    const res = await fetch(url, {
+        credentials: "include",
+        ...options
+    });
+
+    if (res.status === 401) {
+        window.dispatchEvent(new Event("unauthorized"));
+        throw new Error("Unauthorized");
+    }
+
+    if (!res.ok) {
+        throw new Error("Request failed");
+    }
+
+    return res.json();
+}
+
 export async function fetchSessionStats() {
-  const res = await fetch("/api/v1/stats/session");
-  if (!res.ok) throw new Error("session fetch failed");
-  return await res.json();
+    return request("/api/v1/stats/session");
 }
 
 export async function fetchEngineStats() {
-  const res = await fetch("/api/v1/stats/engine");
-  if (!res.ok) throw new Error("engine fetch failed");
-  return await res.json();
+    return request("/api/v1/stats/engine");
+}
+
+export async function login(username, password) {
+    const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password })
+    });
+
+    if (!res.ok) {
+        throw new Error("Invalid credentials");
+    }
+
+    return true;
+}
+
+export async function logout() {
+    await request("/api/logout", {
+        method: "POST"
+    });
 }

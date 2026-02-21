@@ -1,11 +1,9 @@
 #include "HttpSession.h"
 #include "HttpRouter.h"
 
-HttpSession::HttpSession(
-    tcp::socket socket,
-    std::shared_ptr<HttpRouter> router)
-    : m_socket(std::move(socket)),
-      m_router(std::move(router))
+HttpSession::HttpSession(tcp::socket socket, std::shared_ptr<HttpRouter> router) : 
+    m_socket(std::move(socket)),
+    m_router(std::move(router))
 {
 }
 

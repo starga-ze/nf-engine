@@ -17,5 +17,6 @@ target_link_libraries(nf-mgmtd PRIVATE
     Threads::Threads
     Boost::boost
     nlohmann_json::nlohmann_json
+    crypto
 )
 
