@@ -15,6 +15,7 @@ private:
     std::string handleStatsSession();
     std::string handleStatsEngine();
     std::string handleStatsShard();
+    std::string handleStatsMarket();
 
     IpcClient& m_client;
 };

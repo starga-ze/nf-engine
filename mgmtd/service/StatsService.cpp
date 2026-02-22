@@ -20,3 +20,8 @@ std::string StatsService::fetchShard()
 {
     return m_handler.handle("stats/shard");
 }
+
+std::string StatsService::fetchMarket()
+{
+    return m_handler.handle("stats/market");
+}

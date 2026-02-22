@@ -370,3 +370,37 @@ h2{
     color: #ef4444;
     font-size: 14px;
 }
+
+/* ===== Markets ===== */
+
+.market-card {
+  margin-bottom: 18px;
+  padding: 14px;
+  border-radius: var(--r2);
+  background: rgba(15,23,42,0.9);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.market-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.market-title {
+  font-weight: 700;
+  letter-spacing: 0.6px;
+}
+
+.market-count {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--cyan);
+}
+
+.market-table td,
+.market-table th {
+  font-size: 12px;
+}
