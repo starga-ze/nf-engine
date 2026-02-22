@@ -113,7 +113,10 @@ void ShardWorker::enqueueEvent(std::unique_ptr <Event> event) {
         return;
     }
 
-    /* MPSC Queue (protocol worker -> shard worker) */
+    /* MPSC Queue 
+     * Multi Producer: IPC server thread (internal) + Protocol worker thread (external)
+     * Single Consumer: shard worker thread
+     */
     {
         std::lock_guard <std::mutex> lock(m_eventLock);
         m_eventQueue.push(std::move(event));

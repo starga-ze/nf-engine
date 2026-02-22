@@ -90,7 +90,8 @@ void ShardManager::commit(size_t shardIdx, std::unique_ptr <Action> action) {
     m_workers[shardIdx]->enqueueAction(std::move(action));
 }
 
-size_t ShardManager::getWorkerCount() const {
+size_t ShardManager::getWorkerCount() const 
+{
     return m_workerCount;
 }
 

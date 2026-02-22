@@ -1,40 +1,10 @@
 #pragma once
 
+#include "core/CoreControlTypes.h"
+
 #include <cstdint>
 #include <vector>
 #include <string>
-
-struct EngineSnapshot
-{
-    uint64_t uptimeSeconds;
-
-    uint64_t rssMB;
-    uint64_t heapMB;
-    uint64_t dataMB;
-    uint64_t virtualMB;
-
-    double cpuPercent;
-};
-
-struct SessionInfoView 
-{
-    uint64_t sessionId;
-    std::string state;
-    int tlsFd;
-    int tcpFd;
-    int udpFd;
-};
-
-struct SessionSnapshot
-{
-    uint64_t totalSessions = 0;
-    std::vector<SessionInfoView> sessions;
-};
-
-struct ShardSnapshot
-{
-    size_t shardCount;
-};
 
 class CoreControl 
 {
@@ -44,6 +14,7 @@ public:
     EngineSnapshot engineSnapshot() const;
     SessionSnapshot sessionSnapshot() const;
     ShardSnapshot shardSnapshot() const; 
+    MarketSnapshot marketSnapshot() const;
 
 private:
     Core& m_core;

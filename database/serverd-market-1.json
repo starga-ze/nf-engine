@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "next_item_id": 4,
+  "items": [
+    {
+      "item_id": 1,
+      "seller_session_id": 7546566523448466237,
+      "name": "Iron Sword",
+      "price": 1500,
+      "quantity": 1,
+      "created_at_sec": 1700000100
+    },
+    {
+      "item_id": 2,
+      "seller_session_id": 7137569533732527061,
+      "name": "Steel Shield",
+      "price": 2200,
+      "quantity": 1,
+      "created_at_sec": 1700000200
+    },
+    {
+      "item_id": 3,
+      "seller_session_id": 9839596815708873616,
+      "name": "HP Potion",
+      "price": 75,
+      "quantity": 25,
+      "created_at_sec": 1700000300
+    }
+  ]
+}

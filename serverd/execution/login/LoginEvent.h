@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-class LoginEvent : public Event 
+class LoginEvent : public ExternalEvent 
 {
 protected:
     LoginEvent(uint64_t sessionId);

@@ -2,7 +2,7 @@
 #include "execution/login/LoginContext.h"
 
 LoginEvent::LoginEvent(uint64_t sessionId) :
-    Event(sessionId)
+    ExternalEvent(sessionId)
 {
 
 }

@@ -1,11 +1,10 @@
 #pragma once
 
 #include "execution/Event.h"
-#include "shard/ShardContext.h"
 
 #include <vector>
 
-class LobbyEvent : public Event
+class LobbyEvent : public ExternalEvent
 {
 protected:
     LobbyEvent(uint64_t sessionId);

@@ -16,6 +16,7 @@ private:
     std::string handleSessionStats();
     std::string handleEngineStats();
     std::string handleShardStats();
+    std::string handleMarketStats();
 
     CoreControl& m_control;
 };
