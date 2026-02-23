@@ -135,13 +135,13 @@ MarketSnapshot CoreControl::marketSnapshot() const
         shardManager->dispatch(i, std::move(ev));
     }
 
-    // Blocking func, wait for promise.set_value()
     for (auto& f : futures)
     {
         try
         {
             if (f.wait_for(std::chrono::milliseconds(500)) == std::future_status::ready)
             {
+                // Blocking func, wait for promise.set_value()
                 snapshot.markets.emplace_back(f.get()); 
             }
             else
