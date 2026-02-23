@@ -135,10 +135,32 @@ MarketSnapshot CoreControl::marketSnapshot() const
         shardManager->dispatch(i, std::move(ev));
     }
 
+    // Blocking func, wait for promise.set_value()
     for (auto& f : futures)
     {
-        snapshot.markets.push_back(f.get());
+        try
+        {
+            if (f.wait_for(std::chrono::milliseconds(500)) == std::future_status::ready)
+            {
+                snapshot.markets.emplace_back(f.get()); 
+            }
+            else
+            {
+                LOG_WARN("MarketSnapshot timeout from shard");
+            }
+        }
+        catch (const std::future_error& e)
+        {
+            LOG_ERROR("future_error in MarketSnapshot: {}", e.what());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR("Exception in MarketSnapshot: {}", e.what());
+        }
+        catch (...)
+        {
+            LOG_ERROR("Unknown exception in marketsnapshot");
+        }
     }
-
     return snapshot;
 }

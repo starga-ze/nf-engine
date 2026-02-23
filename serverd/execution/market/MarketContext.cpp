@@ -111,15 +111,7 @@ MarketInfo MarketContext::snapshot() const
 
     for (const auto& [id, item] : m_items)
     {
-        MarketItem mi;
-        mi.itemId          = item.itemId;
-        mi.sellerSessionId = item.sellerSessionId;
-        mi.name            = item.name;
-        mi.price           = item.price;
-        mi.quantity        = item.quantity;
-        mi.createdAt       = item.createdAt;
-
-        marketInfo.items.push_back(std::move(mi));
+        marketInfo.items.emplace_back(item);
     }
 
     return marketInfo;

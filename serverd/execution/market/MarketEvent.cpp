@@ -3,6 +3,12 @@
 
 #include "util/Logger.h"
 
+MarketEvent::MarketEvent(uint64_t sessionId) :
+    ExternalEvent(sessionId)
+{
+
+}
+
 MarketDumpReqEvent::MarketDumpReqEvent(std::promise<MarketInfo> marketInfo)
     : m_marketInfo(std::move(marketInfo))
 {
