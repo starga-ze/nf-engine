@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/CoreControl.h"
+#include "core/CoreControlTypes.h"
 
 #include "session/Session.h"
 #include "packet/ParsedPacket.h"
@@ -38,7 +38,7 @@ public:
 
     bool getTxSnapshot(uint64_t sessionId, Opcode opcode, SessionTxSnapshot& out);
 
-    std::vector<SessionInfoView> snapshot() const;
+    std::vector<SessionInfo> snapshot() const;
 
     size_t totalCount() const;
 

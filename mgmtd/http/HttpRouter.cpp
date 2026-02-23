@@ -178,6 +178,10 @@ HttpRouter::Response HttpRouter::dispatchProtected(const Request& req)
     {
         jsonBody = m_statsService->fetchShard();
     }
+    else if (target == "/api/v1/stats/market")
+    {
+        jsonBody = m_statsService->fetchMarket();
+    }
     else
     {
         LOG_TRACE("Response dump: {} -> NOT_FOUND", target);

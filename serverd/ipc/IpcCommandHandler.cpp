@@ -24,6 +24,9 @@ std::string IpcCommandHandler::handle(const std::string& request)
         if (cmd == "stats/shard")
             return handleShardStats();
 
+        if (cmd == "stats/market")
+            return handleMarketStats();
+
         return R"({"error":"unknown command"})";
     }
     catch (...)
@@ -82,6 +85,44 @@ std::string IpcCommandHandler::handleShardStats()
     json res;
 
     res["shardCount"] = snapshot.shardCount;
+
+    return res.dump();
+}
+
+std::string IpcCommandHandler::handleMarketStats()
+{
+    auto snapshot = m_control.marketSnapshot();
+
+    json res;
+    json marketsArr = json::array();
+
+    for (const auto& market : snapshot.markets)
+    {
+        json marketJson;
+        marketJson["marketId"] = market.marketId;
+        marketJson["itemCount"] = market.items.size();
+
+        json itemsArr = json::array();
+
+        for (const auto& item : market.items)
+        {
+            json itemJson;
+            itemJson["item_id"] = item.itemId;
+            itemJson["seller_session_id"] = item.sellerSessionId;
+            itemJson["name"] = item.name;
+            itemJson["price"] = item.price;
+            itemJson["quantity"] = item.quantity;
+            itemJson["created_at_sec"] = item.createdAt;
+
+            itemsArr.push_back(std::move(itemJson));
+        }
+
+        marketJson["items"] = std::move(itemsArr);
+
+        marketsArr.push_back(std::move(marketJson));
+    }
+
+    res["markets"] = std::move(marketsArr);
 
     return res.dump();
 }

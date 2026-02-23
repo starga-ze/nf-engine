@@ -17,6 +17,9 @@ std::string IpcCommandHandler::handle(const std::string& route)
     if (route == "stats/shard")
         return handleStatsShard();
 
+    if (route == "stats/market")
+        return handleStatsMarket();
+
     return R"({"error":"unknown route"})";
 }
 
@@ -33,4 +36,9 @@ std::string IpcCommandHandler::handleStatsEngine()
 std::string IpcCommandHandler::handleStatsShard()
 {
     return m_client.send(R"({"cmd":"stats/shard"})");
+}
+
+std::string IpcCommandHandler::handleStatsMarket()
+{
+    return m_client.send(R"({"cmd":"stats/market"})");
 }

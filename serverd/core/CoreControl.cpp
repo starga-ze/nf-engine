@@ -1,10 +1,13 @@
 #include "CoreControl.h"
 #include "Core.h"
 
+#include "execution/market/MarketEvent.h"
+
 #include <chrono>
 #include <fstream>
 #include <unistd.h>
 #include <malloc.h>
+#include <future>
 
 CoreControl::CoreControl(Core& core)
     : m_core(core)
@@ -104,5 +107,60 @@ ShardSnapshot CoreControl::shardSnapshot() const
 
     snapshot.shardCount = shardManager->getWorkerCount();
 
+    return snapshot;
+}
+
+MarketSnapshot CoreControl::marketSnapshot() const
+{
+    MarketSnapshot snapshot;
+
+    auto* shardManager = m_core.getShardManager();
+
+    if (not shardManager)
+    {
+        return snapshot;
+    }
+
+    size_t workerCount = shardManager->getWorkerCount();
+
+    std::vector<std::future<MarketInfo>> futures;
+    futures.reserve(workerCount);
+
+    for (size_t i = 0; i < workerCount; ++i)
+    {
+        std::promise<MarketInfo> promise;
+        futures.push_back(promise.get_future());
+
+        auto ev = std::make_unique<MarketDumpReqEvent>(std::move(promise));
+        shardManager->dispatch(i, std::move(ev));
+    }
+
+    // Blocking func, wait for promise.set_value()
+    for (auto& f : futures)
+    {
+        try
+        {
+            if (f.wait_for(std::chrono::milliseconds(500)) == std::future_status::ready)
+            {
+                snapshot.markets.emplace_back(f.get()); 
+            }
+            else
+            {
+                LOG_WARN("MarketSnapshot timeout from shard");
+            }
+        }
+        catch (const std::future_error& e)
+        {
+            LOG_ERROR("future_error in MarketSnapshot: {}", e.what());
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR("Exception in MarketSnapshot: {}", e.what());
+        }
+        catch (...)
+        {
+            LOG_ERROR("Unknown exception in marketsnapshot");
+        }
+    }
     return snapshot;
 }

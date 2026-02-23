@@ -48,7 +48,7 @@ private:
 
     void startWorkers();
 
-    size_t m_workerCount;
+    const size_t m_workerCount;
     ThreadManager *m_threadManager;
     DbManager *m_dbManager;
 

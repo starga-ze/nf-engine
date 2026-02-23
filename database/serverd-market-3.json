@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "next_item_id": 3,
+  "items": [
+    {
+      "item_id": 1,
+      "seller_session_id": 14727280285861320459,
+      "name": "Golden Axe",
+      "price": 12500,
+      "quantity": 1,
+      "created_at_sec": 1700002000
+    },
+    {
+      "item_id": 2,
+      "seller_session_id": 7605140317189310060,
+      "name": "Magic Scroll",
+      "price": 5400,
+      "quantity": 7,
+      "created_at_sec": 1700002100
+    }
+  ]
+}

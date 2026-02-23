@@ -2,7 +2,7 @@
 #include "execution/lobby/LobbyContext.h"
 
 LobbyEvent::LobbyEvent(uint64_t sessionId):
-    Event(sessionId)
+    ExternalEvent(sessionId)
 {
 
 }

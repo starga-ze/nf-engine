@@ -2,7 +2,7 @@
 #include "execution/ping/PingContext.h"
 
 PingEvent::PingEvent(uint64_t sessionId) :
-    Event(sessionId)
+    ExternalEvent(sessionId)
 {
 
 }

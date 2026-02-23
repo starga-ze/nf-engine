@@ -5,7 +5,7 @@
 
 #include <vector>
 
-class PingEvent : public Event
+class PingEvent : public ExternalEvent
 {
 protected:
     PingEvent(uint64_t sessionId);

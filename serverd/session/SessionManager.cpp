@@ -197,15 +197,15 @@ size_t SessionManager::totalCount() const
     return m_sessions.size();
 }
 
-std::vector<SessionInfoView> SessionManager::snapshot() const
+std::vector<SessionInfo> SessionManager::snapshot() const
 {
     std::lock_guard<std::mutex> lock(m_lock);
 
-    std::vector<SessionInfoView> result;
+    std::vector<SessionInfo> result;
     result.reserve(m_sessions.size());
 
     for (const auto& [sid, session] : m_sessions) {
-        SessionInfoView v;
+        SessionInfo v;
         v.sessionId = sid;
         v.state     = stateToStr(session->getState());
         v.tlsFd     = session->getTlsFd();

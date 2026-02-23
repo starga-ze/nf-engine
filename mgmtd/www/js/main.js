@@ -1,6 +1,14 @@
-import { fetchSessionStats, fetchEngineStats, fetchShardStats, login, logout } from "./api.js";
-import { renderDashboard } from "./dashboard.js";
-import { renderSessions } from "./sessions.js";
+import { fetchSessionStats, fetchEngineStats, fetchShardStats, fetchMarketStats, login, logout } 
+from "./api.js";
+
+import { renderDashboard } 
+from "./dashboard.js";
+
+import { renderSessions } 
+from "./sessions.js";
+
+import { renderMarkets }
+from "./markets.js";
 
 let intervalId = null;
 
@@ -31,14 +39,16 @@ function setupLogout() {
 
 async function update() {
     try {
-        const [engineStats, sessionStats, shardStats] = await Promise.all([
+        const [engineStats, sessionStats, shardStats, marketStats] = await Promise.all([
             fetchEngineStats(),
             fetchSessionStats(),
-            fetchShardStats()
+            fetchShardStats(),
+            fetchMarketStats()
         ]);
 
         renderDashboard(engineStats, sessionStats.sessions, shardStats);
         renderSessions(sessionStats.sessions);
+        renderMarkets(marketStats.markets);
     } catch (e) {
         console.error("Fetch failed", e);
     }
