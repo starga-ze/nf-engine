@@ -3,7 +3,7 @@
 
 using json = nlohmann::json;
 
-IpcCommandHandler::IpcCommandHandler(CoreControl& control)
+IpcCommandHandler::IpcCommandHandler(CoreControl* control)
     : m_control(control)
 {
 }
@@ -37,7 +37,7 @@ std::string IpcCommandHandler::handle(const std::string& request)
 
 std::string IpcCommandHandler::handleEngineStats()
 {
-    auto snapshot = m_control.engineSnapshot();
+    auto snapshot = m_control->engineSnapshot();
 
     json res;
 
@@ -54,7 +54,7 @@ std::string IpcCommandHandler::handleEngineStats()
 
 std::string IpcCommandHandler::handleSessionStats()
 {
-    auto snapshot = m_control.sessionSnapshot();
+    auto snapshot = m_control->sessionSnapshot();
 
     json res;
 
@@ -80,7 +80,7 @@ std::string IpcCommandHandler::handleSessionStats()
 
 std::string IpcCommandHandler::handleShardStats()
 {
-    auto snapshot = m_control.shardSnapshot();
+    auto snapshot = m_control->shardSnapshot();
 
     json res;
 
@@ -91,7 +91,7 @@ std::string IpcCommandHandler::handleShardStats()
 
 std::string IpcCommandHandler::handleMarketStats()
 {
-    auto snapshot = m_control.marketSnapshot();
+    auto snapshot = m_control->marketSnapshot();
 
     json res;
     json marketsArr = json::array();

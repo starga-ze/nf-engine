@@ -32,7 +32,7 @@ TlsReactor::TlsReactor(SSL_CTX* ctx,
     }
 
     m_epoll = std::make_unique<Epoll>();
-    m_txQueue = std::make_unique<MpscQueue>(TLS_MPSC_QUEUE_SIZE);
+    m_txQueue = std::make_unique<MpscQueue<Packet>>(TLS_MPSC_QUEUE_SIZE);
 }
 
 TlsReactor::~TlsReactor()

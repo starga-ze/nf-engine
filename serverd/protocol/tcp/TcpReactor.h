@@ -51,7 +51,7 @@ private:
 
     std::unordered_map<int, std::unique_ptr<TcpConnection>> m_conns;
 
-    std::unique_ptr<MpscQueue> m_txQueue;
+    std::unique_ptr<MpscQueue<Packet>> m_txQueue;
 
     int m_port;
     int m_listenFd;

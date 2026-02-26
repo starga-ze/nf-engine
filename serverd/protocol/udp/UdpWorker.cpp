@@ -17,7 +17,7 @@ UdpWorker::UdpWorker(RxRouter* rxRouter,
       m_threadManager(threadManager),
       m_id(id)
 {
-    m_rxQueue = std::make_unique<SpscQueue>(UDP_SPSC_QUEUE_SIZE);
+    m_rxQueue = std::make_unique<SpscQueue<Packet>>(UDP_SPSC_QUEUE_SIZE);
     m_rxEpoll = std::make_unique<Epoll>();
 }
 

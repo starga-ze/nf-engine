@@ -1,36 +1,30 @@
 #pragma once
 
+#include "util/ThreadManager.h"
 #include "core/CoreControl.h"
 #include "ipc/IpcCommandHandler.h"
 
 #include <atomic>
-#include <string>
 #include <memory>
 
-class Epoll;   
+class IpcWorker;
+class IpcReactor;
 
 class IpcServer 
 {
 public:
-    explicit IpcServer(CoreControl& control, std::string socketPath);
+    IpcServer(CoreControl* control, std::string socketPath,
+            int worker, ThreadManager* threadManager);
     ~IpcServer();
 
     void start();
     void stop();
 
 private:
-    bool setupSocket();
-    void cleanup();
-    void handleAccept();
+    CoreControl* m_control;
 
-    std::unique_ptr<Epoll> m_ipcEpoll;
-
-    std::atomic<bool> m_running{false};
-    int m_serverFd{-1};
-
-    CoreControl& m_control;
-    std::string m_socketPath;
-
+    std::vector<std::unique_ptr<IpcWorker>> m_ipcWorkers;
+    std::unique_ptr<IpcReactor> m_ipcReactor;
     std::unique_ptr<IpcCommandHandler> m_handler;
 };
 

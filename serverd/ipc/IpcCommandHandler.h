@@ -8,7 +8,7 @@ class CoreControl;
 class IpcCommandHandler
 {
 public:
-    explicit IpcCommandHandler(CoreControl& control);
+    explicit IpcCommandHandler(CoreControl* control);
 
     std::string handle(const std::string& request);
 
@@ -18,5 +18,5 @@ private:
     std::string handleShardStats();
     std::string handleMarketStats();
 
-    CoreControl& m_control;
+    CoreControl* m_control;
 };

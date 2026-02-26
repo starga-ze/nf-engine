@@ -1,35 +1,38 @@
 #include "ipc/IpcFraming.h"
+#include "algorithm/ByteRingBuffer.h"
 
-#include <arpa/inet.h>
-#include <cstring>
+#include <cstdint>
 
-bool IpcFraming::peekBodyLen(const ByteRingBuffer& rxRing, uint16_t& outBodyLen)
+#define IPC_HEADER_SIZE   (2)
+#define IPC_MAX_BODY_LEN  (64 * 1024)
+
+IpcFramingResult
+IpcFraming::tryExtractFrame(const ByteRingBuffer& rxRing,
+                            size_t& outFrameLen)
 {
-    if (rxRing.readable() < HEADER_SIZE)
-        return false;
-
-    uint8_t hdrBuf[HEADER_SIZE];
-    rxRing.peek(hdrBuf, HEADER_SIZE);
-
-    uint16_t nlen = 0;
-    std::memcpy(&nlen, hdrBuf, HEADER_SIZE);
-    outBodyLen = ntohs(nlen);
-    return true;
-}
-
-IpcFramingResult IpcFraming::tryExtractFrame(const ByteRingBuffer& rxRing, size_t& outFrameLen)
-{
-    uint16_t bodyLen = 0;
-    if (!peekBodyLen(rxRing, bodyLen))
+    if (rxRing.readable() < IPC_HEADER_SIZE)
+    {
         return IpcFramingResult::NeedMoreData;
+    }
 
-    if (bodyLen > MAX_BODY)
-        return IpcFramingResult::InvalidLength;
+    uint8_t hdr[IPC_HEADER_SIZE];
+    rxRing.peek(hdr, IPC_HEADER_SIZE);
 
-    const size_t frameLen = HEADER_SIZE + bodyLen;
+    uint16_t bodyLen =
+        (static_cast<uint16_t>(hdr[0]) << 8) |
+        static_cast<uint16_t>(hdr[1]);
+
+    if (bodyLen > IPC_MAX_BODY_LEN)
+    {
+        return IpcFramingResult::InvalidBodyLen;
+    }
+
+    size_t frameLen = static_cast<size_t>(bodyLen) + IPC_HEADER_SIZE;
 
     if (rxRing.readable() < frameLen)
+    {
         return IpcFramingResult::NeedMoreData;
+    }
 
     outFrameLen = frameLen;
     return IpcFramingResult::Ok;

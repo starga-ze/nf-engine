@@ -62,7 +62,7 @@ private:
     std::vector<TlsWorker*> m_tlsWorkers;
 
     std::unique_ptr<Epoll> m_epoll;
-    std::unique_ptr<MpscQueue> m_txQueue;
+    std::unique_ptr<MpscQueue<Packet>> m_txQueue;
 
     std::unordered_map<int, std::unique_ptr<TlsConnection>> m_conns;
 
