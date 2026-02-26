@@ -279,16 +279,11 @@ void IpcReactor::receive(int fd)
                 }
 
                 size_t idx = m_rr.fetch_add(1) % m_ipcWorkers.size();
-
-                auto msg = std::make_unique<IpcMessage>(
-                        fd,
-                        std::string(
-                            reinterpret_cast<const char*>(payload.data() + 2),
-                            payload.size() - 2)
-                        );
+                auto msg = std::make_unique<IpcMessage>(fd, std::move(payload)); 
 
                 m_ipcWorkers[idx]->enqueueRx(std::move(msg));
-            }           continue;
+            }       
+            continue;
         }
 
         if (r == 0)

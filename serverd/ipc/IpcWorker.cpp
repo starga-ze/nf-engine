@@ -15,11 +15,11 @@
 #define IPC_SPSC_QUEUE_SIZE (65536)
 
 IpcWorker::IpcWorker(IpcCommandHandler* handler,
-                     ThreadManager* threadManager,
-                     int id)
+        ThreadManager* threadManager,
+        int id)
     : m_handler(handler),
-      m_threadManager(threadManager),
-      m_id(id)
+    m_threadManager(threadManager),
+    m_id(id)
 {
     m_rxQueue = std::make_unique<SpscQueue<IpcMessage>>(IPC_SPSC_QUEUE_SIZE);
     m_rxEpoll = std::make_unique<Epoll>();
@@ -41,9 +41,9 @@ void IpcWorker::start()
     m_running = true;
 
     m_threadManager->addThread(
-        "ipc_worker_" + std::to_string(m_id),
-        std::bind(&IpcWorker::processMessage, this),
-        std::function<void()>{});
+            "ipc_worker_" + std::to_string(m_id),
+            std::bind(&IpcWorker::processMessage, this),
+            std::function<void()>{});
 }
 
 void IpcWorker::stop()
@@ -89,47 +89,26 @@ void IpcWorker::processMessage()
                 continue;
 
             m_rxEpoll->drainWakeup();
-
-            while (auto msg = m_rxQueue->dequeue())
-            {
-                const auto& p = msg->getPayload();
-                if (p.size() < 2)
-                {
-                    continue;
-                }
-                std::string reqBody(reinterpret_cast<const char*>(p.data() + 2), p.size() - 2);
-
-                std::string respBody;
-                try
-                {
-                    respBody = m_handler->handle(reqBody);
-                }
-                catch (const std::exception& e)
-                {
-                    LOG_ERROR("IPC handler exception: {}", e.what());
-                    respBody = R"({"ok":false,"error":"handler exception"})";
-                }
-                catch (...)
-                {
-                    LOG_ERROR("IPC handler unknown exception");
-                    respBody = R"({"ok":false,"error":"handler unknown exception"})";
-                }
-
-                auto reply = std::make_unique<IpcMessage>(msg->getFd(), std::move(respBody));
-                m_reactor->enqueueTx(std::move(reply));
-            }
+            drainRxQueue();
         }
     }
 
+    // shutdown drain
+    drainRxQueue();
+}
+
+void IpcWorker::drainRxQueue()
+{
     while (auto msg = m_rxQueue->dequeue())
     {
-        const auto& p = msg->getPayload();
-        if (p.size() < 2)
-            continue;
+        std::string respBody =
+            m_handler->handle(std::string(msg->body()));
 
-        std::string reqBody(reinterpret_cast<const char*>(p.data() + 2), p.size() - 2);
-        std::string respBody = m_handler->handle(reqBody);
-        auto reply = std::make_unique<IpcMessage>(msg->getFd(), std::move(respBody));
+        auto frame = IpcMessage::buildFrame(respBody);
+
+        auto reply =
+            std::make_unique<IpcMessage>(msg->getFd(), std::move(frame));
+
         m_reactor->enqueueTx(std::move(reply));
     }
 }

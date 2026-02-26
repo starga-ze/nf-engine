@@ -29,6 +29,7 @@ public:
 
 private:
     void processMessage();
+    void drainRxQueue();
 
 private:
     IpcCommandHandler* m_handler{nullptr}; // non-owning

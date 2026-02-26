@@ -81,18 +81,16 @@ public:
     }
 
 private:
-
     struct Slot
     {
         T* ptr{nullptr};
     };
 
-private:
     size_t m_capacity;
     size_t m_mask;
 
     std::unique_ptr<Slot[]> m_buffer;
 
-    std::atomic<size_t> m_head{0};
-    std::atomic<size_t> m_tail{0};
+    alignas(64) std::atomic<size_t> m_head{0};
+    alignas(64) std::atomic<size_t> m_tail{0};
 };

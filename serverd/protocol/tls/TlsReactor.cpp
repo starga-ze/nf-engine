@@ -130,7 +130,7 @@ void TlsReactor::handover(int fd, std::pair<sockaddr_in, sockaddr_in> connInfo)
         return;
     }
 
-    if (!m_handoverQueue.push(TlsHandoverItem{fd, connInfo}))
+    if (!m_handoverQueue.enqueue(TlsHandoverItem{fd, connInfo}))
     {
         LOG_WARN("TlsReactor handover queue full, dropping fd={}", fd);
         ::close(fd);
@@ -166,7 +166,7 @@ void TlsReactor::processWakeup()
 void TlsReactor::processHandover()
 {
     std::vector<TlsHandoverItem> items;
-    m_handoverQueue.popAll(items);
+    m_handoverQueue.dequeueAll(items);
 
     for (auto& item : items)
     {

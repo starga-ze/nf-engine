@@ -10,6 +10,7 @@
 #include "io/Epoll.h"
 #include "algorithm/ByteRingBuffer.h"
 #include "algorithm/MpscQueue.h"
+#include "algorithm/LockQueue.h"
 
 class IpcWorker;
 class IpcMessage;
