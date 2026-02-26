@@ -96,13 +96,10 @@ class Core {
         bool m_enableDb = false;
 
         int m_shardWorkerThread = 0;
+        int m_ipcWorkerThread = 0;
 
         int m_clients = 0;
-        /*
-           int m_tcpClients = 0;
-           int m_udpClients = 0;
-           int m_tlsClients = 0;
-           */
+
         int m_tcpServerWorkerThread = 0;
         int m_udpServerWorkerThread = 0;
         int m_tlsServerWorkerThread = 0;

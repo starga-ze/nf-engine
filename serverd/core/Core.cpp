@@ -22,11 +22,11 @@ void Core::setFlag(bool enableDb) {
 void Core::run() {
     m_startTime = std::chrono::steady_clock::now();
 
-    initializeIpcServer();
-
     if (not initializeRuntime()) {
         return;
     }
+
+    initializeIpcServer();
 
     if (not initializeTlsContext()) {
         return;
@@ -51,16 +51,6 @@ void Core::shutdown() {
     Logger::Shutdown();
 }
 
-void Core::initializeIpcServer()
-{
-    m_coreControl = std::make_unique<CoreControl>(*this);
-
-    m_ipcServer = std::make_unique<IpcServer>(
-            *m_coreControl,
-            "/run/nf-server/nf-server.sock"
-            );
-}
-
 bool Core::initializeRuntime() {
     ThreadManager::setName("main");
     Logger::Init("nf-server", "/var/log/nf/serverd.log", 1048576 * 5, 100);
@@ -68,6 +58,7 @@ bool Core::initializeRuntime() {
     handleSignal();
 
     m_shardWorkerThread = 4;
+    m_ipcWorkerThread = 4;
 
     m_clients = 1;
     
@@ -97,6 +88,16 @@ bool Core::initializeRuntime() {
         return false;
     }
     return true;
+}
+
+void Core::initializeIpcServer()
+{
+    m_coreControl = std::make_unique<CoreControl>(*this);
+
+    m_ipcServer = std::make_unique<IpcServer>(m_coreControl.get(), 
+            "/run/nf-server/nf-server.sock",
+            m_ipcWorkerThread,
+            m_threadManager.get());
 }
 
 bool Core::initializeTlsContext() {

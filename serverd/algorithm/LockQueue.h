@@ -11,7 +11,7 @@ class LockQueue
 public:
     explicit LockQueue(size_t capacity) : m_capacity(capacity) {}
 
-    bool push(T item)
+    bool enqueue(T item)
     {
         std::lock_guard<std::mutex> g(m_lock);
         if (m_capacity != 0 && m_q.size() >= m_capacity)
@@ -22,7 +22,7 @@ public:
         return true;
     }
 
-    void popAll(std::vector<T>& out)
+    void dequeueAll(std::vector<T>& out)
     {
         out.clear();
         std::lock_guard<std::mutex> g(m_lock);

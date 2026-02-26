@@ -16,7 +16,7 @@ TcpWorker::TcpWorker(RxRouter* rxRouter, ThreadManager* threadManager, int id) :
     m_threadManager(threadManager),
     m_id(id)
 {
-    m_rxQueue = std::make_unique<SpscQueue>(TCP_SPSC_QUEUE_SIZE);
+    m_rxQueue = std::make_unique<SpscQueue<Packet>>(TCP_SPSC_QUEUE_SIZE);
     m_rxEpoll = std::make_unique<Epoll>();
 }
 

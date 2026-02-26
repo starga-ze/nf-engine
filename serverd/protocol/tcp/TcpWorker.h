@@ -29,7 +29,7 @@ private:
 
     std::atomic<bool> m_running{false};
 
-    std::unique_ptr<SpscQueue> m_rxQueue;
+    std::unique_ptr<SpscQueue<Packet>> m_rxQueue;
     std::unique_ptr<Epoll> m_rxEpoll;
 
     int m_id;

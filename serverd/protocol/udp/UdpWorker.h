@@ -5,10 +5,10 @@
 #include <vector>
 
 #include "packet/Packet.h"
+#include "algorithm/SpscQueue.h"
 
 class RxRouter;
 class ThreadManager;
-class SpscQueue;
 class Epoll;
 
 class UdpWorker
@@ -35,7 +35,7 @@ private:
     int m_id;
     std::atomic<bool> m_running{false};
 
-    std::unique_ptr<SpscQueue> m_rxQueue;
+    std::unique_ptr<SpscQueue<Packet>> m_rxQueue;
     std::unique_ptr<Epoll> m_rxEpoll;
 
 };

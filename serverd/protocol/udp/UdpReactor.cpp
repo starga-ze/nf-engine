@@ -18,7 +18,7 @@
 
 UdpReactor::UdpReactor(int port, std::vector<std::unique_ptr<UdpWorker>>& udpWorkers) : 
     m_port(port),
-    m_txQueue(std::make_unique<MpscQueue>(UDP_MPSC_QUEUE_SIZE)),
+    m_txQueue(std::make_unique<MpscQueue<Packet>>(UDP_MPSC_QUEUE_SIZE)),
     m_udpEpoll(std::make_unique<Epoll>())
 {
     m_udpWorkers.reserve(udpWorkers.size());

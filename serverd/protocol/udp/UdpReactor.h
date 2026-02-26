@@ -10,7 +10,6 @@
 #include "io/Epoll.h"
 
 class UdpWorker;
-class MpscQueue;
 
 class UdpReactor
 {
@@ -49,5 +48,5 @@ private:
 
     std::unique_ptr<Epoll> m_udpEpoll;
 
-    std::unique_ptr<MpscQueue> m_txQueue;
+    std::unique_ptr<MpscQueue<Packet>> m_txQueue;
 };

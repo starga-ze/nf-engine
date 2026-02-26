@@ -22,7 +22,7 @@ TcpReactor::TcpReactor(int port, std::vector<std::unique_ptr<TcpWorker>>& tcpWor
         std::shared_ptr<TlsServer> tlsServer) :
     m_port(port),
     m_tlsServer(tlsServer),
-    m_txQueue(std::make_unique<MpscQueue>(TCP_MPSC_QUEUE_SIZE)),
+    m_txQueue(std::make_unique<MpscQueue<Packet>>(TCP_MPSC_QUEUE_SIZE)),
     m_tcpEpoll(std::make_unique<Epoll>())
 {
     m_tcpWorkers.reserve(tcpWorkers.size());
