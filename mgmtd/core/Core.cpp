@@ -28,7 +28,7 @@ void Core::run()
 
     LOG_INFO("Mgmt daemon start...");
 
-    m_threadManager->start(nThreads, std::bind(&HttpServer::run, m_httpServer.get()));
+    m_threadManager->start(nThreads, "http_server", std::bind(&HttpServer::run, m_httpServer.get()));
             
     m_threadManager->join();
 

@@ -31,5 +31,6 @@ add_compile_options(
 
 find_package(Threads REQUIRED)
 
+add_subdirectory(shared)
 add_subdirectory(serverd)
 add_subdirectory(mgmtd)

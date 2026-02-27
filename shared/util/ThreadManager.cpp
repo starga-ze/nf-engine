@@ -1,3 +1,4 @@
+/*
 #include "ThreadManager.h"
 #include "Logger.h"
 
@@ -24,14 +25,12 @@ bool ThreadManager::setName(const std::string &name) {
 
 void ThreadManager::addThread(const std::string &name, std::function<void()> originFunc,
                               std::function<void()> stopFunc) {
-    /* Wrap for prctl */
     auto wrappedFunc = std::bind(&ThreadManager::threadWrapper, this, name, originFunc);
 
     ThreadInfo tInfo;
     tInfo.name = name;
     tInfo.stopFunc = stopFunc;
 
-    /* Start the thread with the wrapped function */
     tInfo.thread = std::thread(wrappedFunc);
 
     {
@@ -83,4 +82,100 @@ void ThreadManager::stopAll() {
         }
     }
 }
+*/
 
+#include "ThreadManager.h"
+#include "Logger.h"
+
+#include <sys/prctl.h>
+#include <cstring>
+#include <unistd.h>
+
+ThreadManager::~ThreadManager()
+{
+    stopAll();
+    join();
+}
+
+bool ThreadManager::setName(const std::string& name)
+{
+    char thread_name[16];
+    std::strncpy(thread_name, name.c_str(), sizeof(thread_name) - 1);
+    thread_name[sizeof(thread_name) - 1] = '\0';
+
+    return prctl(PR_SET_NAME, thread_name, 0, 0, 0) == 0;
+}
+
+void ThreadManager::threadWrapper(const std::string& name,
+                                   std::function<void()> func)
+{
+    setName(name);
+    func();
+}
+
+void ThreadManager::addThread(const std::string& name,
+                              std::function<void()> runFunc,
+                              std::function<void()> stopFunc)
+{
+    ThreadInfo info;
+    info.name = name;
+    info.stopFunc = stopFunc;
+
+    info.thread = std::thread(
+        &ThreadManager::threadWrapper,
+        this,
+        name,
+        runFunc
+    );
+
+    std::lock_guard<std::mutex> lock(m_mtx);
+    m_threads.emplace_back(std::move(info));
+}
+
+void ThreadManager::start(size_t n,
+                          const std::string& baseName,
+                          std::function<void()> runFunc,
+                          std::function<void()> stopFunc)
+{
+    for (size_t i = 0; i < n; ++i)
+    {
+        addThread(baseName + "_" + std::to_string(i),
+                  runFunc,
+                  stopFunc);
+    }
+}
+
+void ThreadManager::stopAll()
+{
+    std::vector<ThreadInfo*> snapshot;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mtx);
+        for (auto& t : m_threads)
+            snapshot.push_back(&t);
+    }
+
+    for (auto* t : snapshot)
+    {
+        if (t->stopFunc)
+            t->stopFunc();
+    }
+}
+
+void ThreadManager::join()
+{
+    auto self = std::this_thread::get_id();
+
+    for (auto& t : m_threads)
+    {
+        if (t.thread.joinable())
+        {
+            if (t.thread.get_id() == self)
+                continue;
+
+            t.thread.join();
+        }
+    }
+
+    m_threads.clear();
+}

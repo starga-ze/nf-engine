@@ -13,7 +13,7 @@ target_compile_definitions(nf-serverd PRIVATE
 )
 
 target_link_libraries(nf-serverd PRIVATE
-    spdlog::spdlog
+    nf-shared
     OpenSSL::SSL
     OpenSSL::Crypto
     Threads::Threads
