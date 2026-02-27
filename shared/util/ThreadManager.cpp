@@ -1,91 +1,5 @@
-/*
 #include "ThreadManager.h"
-#include "Logger.h"
-
-#include <sys/prctl.h>
-#include <cstring>
-#include <unistd.h>
-
-ThreadManager::~ThreadManager() {
-    stopAll();
-}
-
-
-bool ThreadManager::setName(const std::string &name) {
-    char thread_name[16];
-    std::strncpy(thread_name, name.c_str(), sizeof(thread_name) - 1);
-    thread_name[sizeof(thread_name) - 1] = '\0';
-
-    if (prctl(PR_SET_NAME, thread_name, 0, 0, 0) != 0) {
-        LOG_ERROR("Error setting thread name to {}", thread_name);
-        return false;
-    }
-    return true;
-}
-
-void ThreadManager::addThread(const std::string &name, std::function<void()> originFunc,
-                              std::function<void()> stopFunc) {
-    auto wrappedFunc = std::bind(&ThreadManager::threadWrapper, this, name, originFunc);
-
-    ThreadInfo tInfo;
-    tInfo.name = name;
-    tInfo.stopFunc = stopFunc;
-
-    tInfo.thread = std::thread(wrappedFunc);
-
-    {
-        std::lock_guard <std::mutex> lock(m_mtx);
-        m_threadList.push_back(std::move(tInfo));
-    }
-}
-
-void ThreadManager::threadWrapper(const std::string &name, std::function<void()> func) {
-    ThreadManager::setName(name);
-    func();
-}
-
-void ThreadManager::stopAll() {
-    std::vector <ThreadInfo> snapshot;
-    {
-        std::lock_guard <std::mutex> lock(m_mtx);
-
-        if (m_threadList.empty()) {
-            LOG_TRACE("Thread list is empty.");
-            return;
-        }
-
-        snapshot = std::move(m_threadList);
-        m_threadList.clear();
-    }
-
-    for (auto &tInfo: snapshot) {
-        LOG_TRACE("Stopping thread '{}'", tInfo.name);
-        if (tInfo.stopFunc)
-        {
-            tInfo.stopFunc();
-        }
-        else
-        {
-            LOG_DEBUG("Stop func is not allocated, '{}'", tInfo.name);
-            continue;
-        }
-    }
-
-    auto self = std::this_thread::get_id();
-    for (auto &tInfo: snapshot) {
-        if (tInfo.thread.joinable()) {
-            if (tInfo.thread.get_id() == self) {
-                LOG_WARN("Skip joining self thread: {}", tInfo.name);
-                continue;
-            }
-            tInfo.thread.join();
-        }
-    }
-}
-*/
-
-#include "ThreadManager.h"
-#include "Logger.h"
+#include "util/Logger.h"
 
 #include <sys/prctl.h>
 #include <cstring>
@@ -94,7 +8,6 @@ void ThreadManager::stopAll() {
 ThreadManager::~ThreadManager()
 {
     stopAll();
-    join();
 }
 
 bool ThreadManager::setName(const std::string& name)
@@ -147,26 +60,23 @@ void ThreadManager::start(size_t n,
 
 void ThreadManager::stopAll()
 {
-    std::vector<ThreadInfo*> snapshot;
+    std::vector<ThreadInfo> snapshot;
 
     {
         std::lock_guard<std::mutex> lock(m_mtx);
-        for (auto& t : m_threads)
-            snapshot.push_back(&t);
+        snapshot = std::move(m_threads);
+        m_threads.clear();
     }
 
-    for (auto* t : snapshot)
+    for (auto& t : snapshot)
     {
-        if (t->stopFunc)
-            t->stopFunc();
+        if (t.stopFunc)
+            t.stopFunc();
     }
-}
 
-void ThreadManager::join()
-{
     auto self = std::this_thread::get_id();
 
-    for (auto& t : m_threads)
+    for (auto& t : snapshot)
     {
         if (t.thread.joinable())
         {
@@ -176,6 +86,4 @@ void ThreadManager::join()
             t.thread.join();
         }
     }
-
-    m_threads.clear();
 }

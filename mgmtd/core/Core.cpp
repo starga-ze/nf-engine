@@ -30,7 +30,7 @@ void Core::run()
 
     m_threadManager->start(nThreads, "http_server", std::bind(&HttpServer::run, m_httpServer.get()));
             
-    m_threadManager->join();
+    m_threadManager->stopAll();
 
     Logger::Shutdown();
 }
